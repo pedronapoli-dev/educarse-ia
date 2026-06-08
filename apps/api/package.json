@@ -5,11 +5,10 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "prebuild": "cd ../.. && npm run build --workspace=packages/types",
-    "build": "tsc",
+    "build": "tsc --build",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
