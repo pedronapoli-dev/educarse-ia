@@ -6,8 +6,7 @@
     "lib":     ["ES2022", "DOM"]
   },
   "references": [
-    { "path": "../../packages/types" },
-    { "path": "../../packages/prompts" }
+    { "path": "../../packages/types" }
   ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
