@@ -1,140 +1,38 @@
 # FuncionarIA
 
-> Transforme sua ementa em um plano de estudos personalizado em menos de 60 segundos.
+Transforme sua ementa em um plano de estudos personalizado com inteligencia artificial.
 
----
+O FuncionarIA analisa o conteudo programatico da sua disciplina e gera um cronograma de estudos adaptado ao seu nivel de conhecimento, disponibilidade de tempo e objetivo real — seja passar na prova, dominar o conteudo para o TCC ou se preparar para uma certificacao.
 
-## Estrutura do Monorepo (Turborepo)
+## Como funciona
 
-```
-funcionaria/
-├── apps/
-│   ├── web/           # Next.js 14 · TypeScript · Tailwind CSS
-│   └── api/           # Fastify 4 · TypeScript · Node.js 20
-├── packages/
-│   └── types/         # @funcionaria/types — fonte única de verdade para tipos
-├── turbo.json         # Pipeline: build, dev, lint, type-check
-├── package.json       # Workspace root + scripts globais
-├── tsconfig.json      # TypeScript base herdado pelos apps
-└── .npmrc             # npm workspaces config
-```
+1. **Envie sua ementa** — faca upload do PDF ou cole o texto. A IA extrai topicos, pre-requisitos e bibliografia automaticamente.
 
-### Por que Turborepo?
+2. **Configure seu perfil** — informe seu nivel de conhecimento previo, como prefere estudar (videos, exercicios, leitura...) e por que precisa aprender esse conteudo.
 
-| Benefício | Impacto prático |
-|-----------|----------------|
-| `turbo dev` paralelo | Um comando sobe web + api com logs organizados |
-| Cache inteligente | Sem mudanças no api? Build não roda de novo |
-| `@funcionaria/types` compartilhado | Tipos definidos uma vez, nunca dessincronizam |
-| Pipeline declarativa | Ordem de build garantida entre pacotes |
+3. **Receba seu plano** — em menos de 60 segundos, um cronograma semanal personalizado com sessoes de teoria, pratica e revisao espaçada.
 
----
+4. **Estude com acompanhamento** — marque sessoes como concluidas, faca exercicios alinhados ao seu nivel, receba check-ins semanais e recalibre o plano quando travar.
 
-## Início Rápido
+## Fundamentacao pedagogica
 
-### Pré-requisitos
-- Node.js 20+
-- Conta no [Supabase](https://supabase.com)
-- Chave da [Anthropic API](https://console.anthropic.com)
-- Conta no [Stripe](https://stripe.com) (pode deixar para depois)
+Cada plano gerado aplica principios de sete frameworks educacionais: Freire (autonomia progressiva), Vygotsky (zona de desenvolvimento proximal), Bloom (taxonomia cognitiva com criterios de maestria), Piaget (construtivismo), Sweller (carga cognitiva controlada), Ebbinghaus (revisao espaçada com SM-2) e Darcy Ribeiro (educacao integral).
 
-### 1. Instalar (uma vez, na raiz)
-```bash
-npm install
-```
+Isso nao e decorativo — define a estrutura do plano, a progressao dos exercicios e o tom do feedback.
 
-### 2. Configurar variáveis
-```bash
-cp apps/api/.env.example  apps/api/.env
-cp apps/web/.env.example  apps/web/.env.local
-# Preencha os valores em cada arquivo
-```
+## Features
 
-### 3. Criar banco de dados
-Execute `apps/api/src/lib/schema.sql` no SQL Editor do Supabase.
-
-### 4. Rodar
-```bash
-npm run dev
-# web → http://localhost:3000
-# api → http://localhost:3001/health
-```
-
----
-
-## Comandos
-
-```bash
-npm run dev          # web + api em paralelo
-npm run build        # build de produção com cache
-npm run type-check   # TypeScript em todos os apps
-npm run lint         # lint em todos os apps
-npm run clean        # limpa artefatos de build
-
-# App específico
-npx turbo dev --filter=@funcionaria/web
-npx turbo dev --filter=@funcionaria/api
-```
-
----
-
-## `@funcionaria/types` — Regra de uso
-
-```typescript
-// No frontend — sempre via alias local @/types
-import type { Plan, Subject, Exercise } from '@/types'
-
-// No backend
-import type { Plan, Subject, Exercise } from '@funcionaria/types'
-
-// Adicionar tipo novo que existe nos dois lados?
-// → packages/types/src/index.ts  (nunca duplique)
-```
-
----
-
-## Variáveis de Ambiente
-
-### `apps/api/.env`
-| Variável | Onde encontrar |
-|----------|---------------|
-| `SUPABASE_URL` | Supabase → Settings → API |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API ⚠️ nunca exponha |
-| `ANTHROPIC_API_KEY` | console.anthropic.com |
-| `JWT_SECRET` | Supabase → Settings → API → JWT Secret |
-| `STRIPE_SECRET_KEY` | Stripe → Developers → API Keys |
-| `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → Signing secret |
-| `STRIPE_PRICE_ID_PRO` | Stripe → Products → Price ID |
-| `FRONTEND_URL` | `http://localhost:3000` em dev |
-
-### `apps/web/.env.local`
-| Variável | Onde encontrar |
-|----------|---------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API (seguro expor) |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3001` em dev |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe → Developers |
-
----
-
-## Deploy
-
-| App | Plataforma | Root dir |
-|-----|-----------|----------|
-| `@funcionaria/web` | Vercel | `apps/web` |
-| `@funcionaria/api` | Railway | `apps/api` |
-| Banco | Supabase | — |
-
----
+- **Parsing inteligente de ementas** — extrai topicos, dependencias e nivel de dificuldade de PDFs ou texto livre
+- **Planos personalizados** — cronograma semanal com sessoes de 45-90 min, scaffolding progressivo e revisao espaçada
+- **Exercicios adaptativos** — questoes alinhadas a Taxonomia de Bloom com dicas scaffolded e feedback explicativo
+- **Check-in semanal** — avaliacao de progresso quantitativo e qualitativo com acoes concretas
+- **Recalibracao** — quando voce trava, a IA diagnostica o bloqueio e ajusta o plano
+- **Distribuicao cognitiva** — visualizacao do nivel Bloom de cada sessao ao longo do plano
 
 ## Stack
 
-| | Tecnologia |
-|-|-----------|
-| Frontend | Next.js 14 · Tailwind CSS |
-| Backend | Fastify 4 · Node.js 20 |
-| Banco | Supabase (PostgreSQL + Auth) |
-| IA | Claude API · claude-sonnet-4-6 |
-| Pagamentos | Stripe |
-| Orquestração | Turborepo 2 |
-| Linguagem | TypeScript 5 (end-to-end) |
+TypeScript end-to-end. Next.js, Fastify, Supabase, Anthropic Claude API.
+
+## License
+
+Proprietary. All rights reserved.
