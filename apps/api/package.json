@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "prebuild": "cd ../.. && npm run build --workspace=packages/types",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
