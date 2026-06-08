@@ -71,6 +71,7 @@ create table public.plans (
   total_weeks       integer not null,              -- duração total do plano
   schedule          jsonb not null default '[]',  -- plano semanal gerado (ver tipo abaixo)
   progress          integer not null default 0,   -- % de conclusão (0-100)
+  application_context text,                       -- contexto do aluno (por que está estudando)
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );

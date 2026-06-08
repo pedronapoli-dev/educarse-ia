@@ -47,7 +47,7 @@ export const RecalibrateModal = ({ plan, activeWeek, onClose }: Props) => {
         weeks_remaining:     plan.total_weeks - activeWeek,
         topics_remaining:    [...new Set(topicsRemaining)],
         topics_done:         [...new Set(topicsDone)],
-        application_context: '',
+        application_context: plan.application_context ?? '',
         current_scaffolding: currentScaffolding,
       })
       return res.recalibration

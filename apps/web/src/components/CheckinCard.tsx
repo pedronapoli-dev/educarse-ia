@@ -51,7 +51,7 @@ export const CheckinCard = ({ plan, activeWeek }: Props) => {
         difficulties,
         hours_studied_this_week: Math.round(hoursStudied * 10) / 10,
         hours_planned_this_week: Math.round(hoursPlanned * 10) / 10,
-        application_context:     '',
+        application_context:     plan.application_context ?? '',
       })
       return res.checkin
     })

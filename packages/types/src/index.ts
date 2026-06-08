@@ -106,10 +106,11 @@ export interface Plan {
   exam_date?:    string | null
   total_weeks:   number
   schedule:      ScheduleWeek[]
-  progress:      number
-  created_at:    string
-  updated_at:    string
-  subjects?:     Subject
+  progress:              number
+  application_context?:  string | null
+  created_at:            string
+  updated_at:            string
+  subjects?:             Subject
 }
 
 export interface CreatePlanInput {

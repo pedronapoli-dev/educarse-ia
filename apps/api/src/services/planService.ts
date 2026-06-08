@@ -108,6 +108,7 @@ export async function generateAndSavePlan(input: PlanInput) {
       title: generatedPlan.title, hours_per_day: input.hoursPerDay,
       days_per_week: input.daysPerWeek, exam_date: input.examDate ?? null,
       total_weeks: generatedPlan.total_weeks, schedule: generatedPlan.schedule,
+      application_context: input.applicationContext ?? null,
       status: 'active', progress: 0,
     })
     .select().single()

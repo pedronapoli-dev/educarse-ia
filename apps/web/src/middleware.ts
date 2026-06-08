@@ -8,7 +8,9 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  if (!session && pathname !== '/login') {
+  const publicPaths = ['/', '/login']
+
+  if (!session && !publicPaths.includes(pathname)) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
   if (session && (pathname === '/login' || pathname === '/')) {

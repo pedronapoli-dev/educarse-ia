@@ -59,15 +59,17 @@ packages/prompts/  → AI prompt templates (has src/prompts.ts + src/router.ts b
 - `/login` — Email/password auth with Supabase
 - `/dashboard` — Plan list with stats, empty state
 - `/plan/new` — 5-step wizard: Upload → Confirm (editable metadata) → Profile (knowledge level, formats, context, blocks) → Configure (hours, days, exam date) → Generating
-- `/plan/[id]` — **FILE IS EMPTY — NOT IMPLEMENTED** (critical gap)
+- `/plan/[id]` — Plan detail with week navigation, session completion, exercise/checkin/recalibrate flows
 
-**Components (all built, waiting for plan detail page):**
+**Components:**
 - `DayItem` — Study session card with complete toggle, badges (type/priority/bloom), mastery criteria, review chain, tip, practice button
 - `CheckinCard` — Weekly check-in form + results (trend, progress, action rationale)
 - `ExerciseModal` — Exercise generation/display with scaffolded hints, answer feedback
 - `RecalibrateModal` — "I'm stuck" flow: block type → topic → AI recalibration results
 - `BloomBadge` + `BloomDistribution` — Bloom level visualization
 - `Navbar` — Header with nav + logout
+
+**Error handling:** `error.tsx` (route-level) and `global-error.tsx` (root-level) error boundaries.
 
 **Lib:** Typed API client (api.ts), Supabase clients (browser + server), middleware (auth guard), constants (UI labels/config), useAsyncAction hook.
 
@@ -77,23 +79,20 @@ Tables (all RLS-protected): users, subjects, plans, exercises, study_sessions.
 Triggers: auto updated_at, auto profile creation on signup.
 RPC: increment_plans_count.
 Key: plans.schedule stores full ScheduleWeek[] as JSONB; completions tracked in both study_sessions table AND schedule JSONB.
+Migration 003: `application_context` column on plans (run `apps/api/src/lib/migrations/003_plans_application_context.sql`).
 
 ### Shared Types (packages/types/src/index.ts)
 
-~200 lines covering: User, Subject, ParsedSubject, Plan, ScheduleWeek, ScheduleDay, BloomLevel, ScaffoldingLevel, StudentProfile, DiagnosticResult, PlanCheckin, RecalibrateResult, Exercise, StudySession, SkillRoute, RoutingContext, and all union types.
+~200 lines covering: User, Subject, ParsedSubject, Plan (with application_context), ScheduleWeek, ScheduleDay, BloomLevel, ScaffoldingLevel, StudentProfile, DiagnosticResult, PlanCheckin, RecalibrateResult, Exercise, StudySession, SkillRoute, RoutingContext, and all union types.
 
 ## Known Gaps & Incomplete Features
 
-1. **`/plan/[id]` page is EMPTY** — Most critical gap. Components exist but no page assembles them.
-2. **No git history** — Repo has no commits visible.
-3. **Stripe checkout flow missing** — Webhook route exists, env vars defined, but no checkout UI or billing page.
-4. **No landing page** — `/` redirects to /dashboard.
-5. **packages/prompts not used** — API has its own prompts.ts; shared package is a stale duplicate.
-6. **README.md outdated** — References Next.js 14 / Fastify 4 (actual: 16 / 5.8).
-7. **No tests** — Zero test files.
-8. **Checkin/Recalibrate cooldowns not enforced** — Comments say "Phase 2: DB" but nothing implemented.
-9. **application_context not passed** — CheckinCard and RecalibrateModal send empty string for application_context.
-10. **No error boundary** — No global error handling in frontend.
+1. **Stripe checkout flow missing** — Webhook route exists, env vars defined, but no checkout UI or billing page.
+2. **No landing page** — `/` redirects to /dashboard.
+3. **packages/prompts not used** — API has its own prompts.ts; shared package is a stale duplicate.
+4. **No tests** — Zero test files.
+5. **Checkin/Recalibrate cooldowns not enforced** — Comments say "Phase 2: DB" but nothing implemented.
+6. **Migration 003 not yet applied** — Run `003_plans_application_context.sql` in Supabase SQL Editor.
 
 ## Design Decisions to Preserve
 

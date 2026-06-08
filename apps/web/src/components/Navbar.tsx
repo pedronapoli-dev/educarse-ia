@@ -9,7 +9,7 @@ export const Navbar = () => {
   const pathname = usePathname()
   const router   = useRouter()
 
-  if (pathname === '/login') return null
+  if (pathname === '/login' || pathname === '/') return null
 
   const handleLogout = async () => {
     const supabase = createClient()
