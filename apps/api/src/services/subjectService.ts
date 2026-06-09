@@ -9,9 +9,11 @@ export const extractTextFromPdf = async (buffer: Buffer): Promise<string> => {
   return data.text.trim()
 }
 
+const MAX_SUBJECT_CHARS = 12_000 // ~3k tokens — ementa raramente passa disso
+
 export const parseSubjectFromText = async (rawText: string): Promise<ParsedSubject> => {
-  const response = await generate(PARSE_SUBJECT_SYSTEM, parseSubjectPrompt(rawText), 4096)
-  console.info('[parseSubject] raw response:', response.slice(0, 500))
+  const truncated = rawText.length > MAX_SUBJECT_CHARS ? rawText.slice(0, MAX_SUBJECT_CHARS) : rawText
+  const response = await generate(PARSE_SUBJECT_SYSTEM, parseSubjectPrompt(truncated), 8192)
   const parsed = parseJsonResponse<ParsedSubject>(response, 'ementa')
   parsed.topics        = parsed.topics        ?? []
   parsed.bibliography  = parsed.bibliography  ?? []
