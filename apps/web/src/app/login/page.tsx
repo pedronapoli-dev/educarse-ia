@@ -2,8 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { AlertCircle, Loader2, GraduationCap } from 'lucide-react'
+import { AlertCircle, Loader2, GraduationCap, MailCheck, ArrowLeft } from 'lucide-react'
+
+type Mode = 'signin' | 'signup' | 'confirm'
 
 const LoginPage = () => {
   const router = useRouter()
@@ -11,7 +14,7 @@ const LoginPage = () => {
   const [password, setPassword]   = useState('')
   const [error, setError]         = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [mode, setMode]           = useState<'signin' | 'signup'>('signin')
+  const [mode, setMode]           = useState<Mode>('signin')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,15 +25,62 @@ const LoginPage = () => {
     if (mode === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setIsLoading(false); return }
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) { setError(error.message); setIsLoading(false); return }
+      router.push('/dashboard')
+      router.refresh()
+      return
     }
 
-    router.push('/dashboard')
-    router.refresh()
+    // signup
+    const { data, error } = await supabase.auth.signUp({ email, password })
+    if (error) { setError(error.message); setIsLoading(false); return }
+
+    // Supabase retorna session=null quando confirmação de e-mail está habilitada
+    if (data.session) {
+      router.push('/dashboard')
+      router.refresh()
+    } else {
+      setIsLoading(false)
+      setMode('confirm')
+    }
   }
 
+  // ── Tela de confirmação de e-mail ──────────────────────────
+  if (mode === 'confirm') {
+    return (
+      <div className="flex min-h-screen flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600">
+              <GraduationCap className="text-white" size={20} />
+            </div>
+          </div>
+        </div>
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white px-6 py-8 shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg sm:px-10 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50">
+                <MailCheck className="text-indigo-600" size={22} />
+              </div>
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Confirme seu e-mail</h2>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Enviamos um link de confirmação para{' '}
+              <span className="font-medium text-gray-700">{email}</span>.
+              Clique no link para ativar sua conta e depois entre aqui.
+            </p>
+            <button
+              onClick={() => setMode('signin')}
+              className="mt-6 btn-primary w-full py-2"
+            >
+              Já confirmei — entrar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Formulário de login / cadastro ─────────────────────────
   return (
     <div className="flex min-h-screen flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
 
@@ -112,6 +162,17 @@ const LoginPage = () => {
               {mode === 'signin' ? 'Criar conta' : 'Entrar'}
             </button>
           </p>
+        </div>
+
+        {/* Voltar para home */}
+        <div className="mt-4 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <ArrowLeft size={13} />
+            Voltar para o início
+          </Link>
         </div>
       </div>
 
