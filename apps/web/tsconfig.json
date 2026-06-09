@@ -11,7 +11,7 @@
     "plugins":          [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
-      "@funcionaria/types": ["../../packages/types/src/index.ts"]
+      "@educarseia/types": ["../../packages/types/src/index.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

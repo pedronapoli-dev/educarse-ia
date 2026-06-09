@@ -2,7 +2,7 @@ import pdfParse from 'pdf-parse'
 import { generate, parseJsonResponse } from '../lib/anthropic'
 import { supabase } from '../lib/supabase'
 import { PARSE_SUBJECT_SYSTEM, parseSubjectPrompt } from '../lib/prompts'
-import type { ParsedSubject } from '@funcionaria/types'
+import type { ParsedSubject } from '@educarseia/types'
 
 export const extractTextFromPdf = async (buffer: Buffer): Promise<string> => {
   const data = await pdfParse(buffer)

@@ -1,10 +1,10 @@
-# FuncionarIA — Agent Instructions
+# educar-se-ia — Agent Instructions
 
 > These instructions apply to all AI agent interactions in this workspace.
 
 ## Project
 
-**FuncionarIA** — AI-powered study plan generator. Turborepo monorepo with:
+**educar-se-ia** — AI-powered study plan generator. Turborepo monorepo with:
 - `apps/web/` — Next.js 16 (App Router, React 18, Tailwind 3.4, Supabase SSR)
 - `apps/api/` — Fastify 5.8 (Node.js 20+, @fastify/jwt, Zod)
 - `packages/types/` — Shared TypeScript types (single source of truth)
@@ -27,7 +27,7 @@
 7. **Error responses**: always `{ error: string }` with proper HTTP status codes.
 8. **Naming**: `kebab-case` files, `PascalCase` components/types, `camelCase` functions, `UPPER_SNAKE_CASE` constants.
 9. **Code in English**, user-facing strings in **Portuguese (pt-BR)**.
-10. **SOLID principles**: SRP (routes ≠ services ≠ lib), OCP (extend via plugins), DIP (depend on `@funcionaria/types`).
+10. **SOLID principles**: SRP (routes ≠ services ≠ lib), OCP (extend via plugins), DIP (depend on `@educarseia/types`).
 11. **Always prefer arrow functions**.
 
 ## Skills

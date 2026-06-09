@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from 'fastify'
-import type { PlanPhase } from '@funcionaria/types'
+import type { PlanPhase } from '@educarseia/types'
 import { supabase } from '../lib/supabase'
 import { getUserId } from '../plugins/auth'
 import { generateAndSaveExercises, answerExercise } from '../services/exerciseService'

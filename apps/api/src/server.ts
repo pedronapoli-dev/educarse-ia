@@ -127,7 +127,7 @@ async function bootstrap() {
 
   const port = Number(process.env.PORT ?? 3001)
   await server.listen({ port, host: '0.0.0.0' })
-  server.log.info(`FuncionarIA API rodando em http://localhost:${port}`)
+  server.log.info(`educar-se-ia API rodando em http://localhost:${port}`)
 }
 
 bootstrap().catch((err) => { console.error(err); process.exit(1) })

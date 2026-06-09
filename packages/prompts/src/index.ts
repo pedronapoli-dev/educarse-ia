@@ -1,5 +1,5 @@
 // ============================================================
-// @funcionaria/prompts
+// @educarseia/prompts
 // Prompts centralizados da IA — versionados separadamente.
 //
 // Este pacote é a fonte canônica de todos os prompts.

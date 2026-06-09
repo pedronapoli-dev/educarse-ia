@@ -33,7 +33,7 @@ import {
   RECALIBRATE_SYSTEM,
 } from './prompts'
 
-// ── Public types (also exported from @funcionaria/types) ──────
+// ── Public types (also exported from @educarseia/types) ──────
 
 export type SkillId =
   | 'parse-subject'

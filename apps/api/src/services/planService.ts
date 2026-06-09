@@ -4,7 +4,7 @@ import { generatePlanPrompt } from '../lib/prompts'
 import { routeSkill, inferStudentLevel, inferUrgency } from '../lib/skillRouter'
 import { calculateReviewSchedule } from '../lib/mcp/spacedRepTools'
 import { searchYoutubeEducation }  from '../lib/mcp/resourceTools'
-import type { ScheduleWeek } from '@funcionaria/types'
+import type { ScheduleWeek } from '@educarseia/types'
 
 export interface PlanInput {
   userId:               string

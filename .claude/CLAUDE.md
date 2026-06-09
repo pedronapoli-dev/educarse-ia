@@ -1,19 +1,19 @@
-# FuncionarIA — Project Instructions & State
+# educar-se-ia — Project Instructions & State
 
 > Single source of truth for all AI-assisted development. Updated 2026-06-08.
 
 ## Project
 
-**FuncionarIA** — AI-powered study plan generator that transforms academic syllabi (ementas) into personalized study plans. Turborepo monorepo: Next.js 16 frontend + Fastify 5.8 API + Supabase (PostgreSQL, Auth, RLS) + Stripe payments + Anthropic Claude AI.
+**educar-se-ia** — AI-powered study plan generator that transforms academic syllabi (ementas) into personalized study plans. Turborepo monorepo: Next.js 16 frontend + Fastify 5.8 API + Supabase (PostgreSQL, Auth, RLS) + Stripe payments + Anthropic Claude AI.
 
 **Pedagogical foundation:** Freire (autonomy), Piaget (constructivism), Vygotsky (ZDP/scaffolding), Bloom (taxonomy + mastery learning), Darcy Ribeiro (integral education), Sweller (cognitive load), Ebbinghaus (spaced repetition). These are not decorative — every prompt, schedule field, and UI element reflects them.
 
 ## Structure
 
 ```
-apps/web/          → @funcionaria/web (Next.js App Router, React 18, Tailwind 3.4)
-apps/api/          → @funcionaria/api (Fastify 5.8, Zod, @fastify/jwt)
-packages/types/    → @funcionaria/types (shared types — single source of truth)
+apps/web/          → @educarseia/web (Next.js App Router, React 18, Tailwind 3.4)
+apps/api/          → @educarseia/api (Fastify 5.8, Zod, @fastify/jwt)
+packages/types/    → @educarseia/types (shared types — single source of truth)
 packages/config/   → shared configuration (tsconfig presets only for now)
 packages/prompts/  → AI prompt templates (has src/prompts.ts + src/router.ts but NOT used by API — API has its own copy in apps/api/src/lib/prompts.ts)
 ```
@@ -110,7 +110,7 @@ Migration 003: `application_context` column on plans (run `apps/api/src/lib/migr
 - `import type` for type-only imports
 - Shared types in `packages/types/src/index.ts` only — never duplicate
 - Frontend: `import type { Plan } from '@/types'`
-- Backend: `import type { Plan } from '@funcionaria/types'`
+- Backend: `import type { Plan } from '@educarseia/types'`
 - Union types over enums
 - Always prefer arrow functions
 
@@ -152,7 +152,7 @@ Migration 003: `application_context` column on plans (run `apps/api/src/lib/migr
 ### SOLID
 - Routes = HTTP, Services = logic, Lib = infra
 - Extend via plugins, not modification
-- Depend on `@funcionaria/types` abstractions
+- Depend on `@educarseia/types` abstractions
 
 ### Language
 - Code: English

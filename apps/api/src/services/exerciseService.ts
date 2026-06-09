@@ -1,7 +1,7 @@
 import { generate, parseJsonResponse } from '../lib/anthropic'
 import { supabase } from '../lib/supabase'
 import { GENERATE_EXERCISES_SYSTEM, generateExercisesPrompt } from '../lib/prompts'
-import type { Exercise } from '@funcionaria/types'
+import type { Exercise } from '@educarseia/types'
 
 interface ParsedExercise {
   question:         string

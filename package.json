@@ -1,5 +1,5 @@
 {
-  "name": "funcionaria",
+  "name": "educarseia",
   "private": true,
   "workspaces": [
     "apps/*",

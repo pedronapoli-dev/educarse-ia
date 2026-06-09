@@ -6,7 +6,7 @@ import { Navbar } from '@/components/Navbar'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FuncionarIA — Planos de estudo com IA',
+  title: 'educar-se-ia — Planos de estudo com IA',
   description: 'Transforme sua ementa em um plano de estudos personalizado em menos de 60 segundos.',
 }
 

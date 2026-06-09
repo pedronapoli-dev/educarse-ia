@@ -105,7 +105,7 @@ const LandingPage = () => {
               <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600">
                 <GraduationCap className="text-white" size={16} />
               </div>
-              <span className="text-sm font-bold tracking-tight text-gray-900">FuncionarIA</span>
+              <span className="text-sm font-bold tracking-tight text-gray-900">educar-se-ia</span>
             </div>
             <div className="flex items-center gap-3">
               <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
@@ -313,10 +313,10 @@ const LandingPage = () => {
             <div className="flex h-6 w-6 items-center justify-center rounded bg-indigo-600">
               <GraduationCap className="text-white" size={12} />
             </div>
-            <span className="text-xs font-semibold text-gray-500">FuncionarIA</span>
+            <span className="text-xs font-semibold text-gray-500">educar-se-ia</span>
           </div>
           <p className="text-xs text-gray-400">
-            &copy; {new Date().getFullYear()} FuncionarIA. Todos os direitos reservados.
+            &copy; {new Date().getFullYear()} educar-se-ia. Todos os direitos reservados.
           </p>
         </div>
       </footer>

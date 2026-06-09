@@ -28,7 +28,7 @@ export const Navbar = () => {
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600">
               <GraduationCap className="text-white" size={16} aria-hidden="true" />
             </div>
-            <span className="text-sm font-bold tracking-tight text-gray-900">FuncionarIA</span>
+            <span className="text-sm font-bold tracking-tight text-gray-900">educar-se-ia</span>
           </Link>
 
           {/* Right side */}

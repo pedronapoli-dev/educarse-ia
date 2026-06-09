@@ -1,10 +1,10 @@
-# Deploy — FuncionarIA
+# Deploy — educar-se-ia
 
-Guia passo a passo para colocar o FuncionarIA em produção.
+Guia passo a passo para colocar o educar-se-ia em produção.
 
 **Arquitetura:**
-- **Web (Next.js):** Vercel → `usefuncionaria.com.br`
-- **API (Fastify):** Railway → `api.usefuncionaria.com.br`
+- **Web (Next.js):** Vercel → `educarse-ia.com.br`
+- **API (Fastify):** Railway → `api.educarse-ia.com.br`
 - **DB + Auth:** Supabase (projeto existente)
 
 ---
@@ -13,8 +13,8 @@ Guia passo a passo para colocar o FuncionarIA em produção.
 
 No dashboard do Supabase (Authentication → URL Configuration):
 
-1. **Site URL:** `https://usefuncionaria.com.br`
-2. **Redirect URLs:** adicionar `https://usefuncionaria.com.br/**`
+1. **Site URL:** `https://educarse-ia.com.br`
+2. **Redirect URLs:** adicionar `https://educarse-ia.com.br/**`
 3. Se usar OAuth social no futuro, adicionar os redirect URLs aqui também
 
 ---
@@ -36,17 +36,17 @@ No painel do projeto → Settings → Environment Variables:
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://<seu-projeto>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
-NEXT_PUBLIC_API_URL=https://api.usefuncionaria.com.br
+NEXT_PUBLIC_API_URL=https://api.educarse-ia.com.br
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=<stripe-pk> (opcional por enquanto)
 ```
 
 ### 2.3 Domínio
 
-Settings → Domains → Add `usefuncionaria.com.br`
+Settings → Domains → Add `educarse-ia.com.br`
 
 A Vercel vai pedir para criar registros DNS:
-- **Tipo A:** `76.76.21.21` (para `usefuncionaria.com.br`)
-- **Tipo CNAME:** `cname.vercel-dns.com` (para `www.usefuncionaria.com.br`, se quiser)
+- **Tipo A:** `76.76.21.21` (para `educarse-ia.com.br`)
+- **Tipo CNAME:** `cname.vercel-dns.com` (para `www.educarse-ia.com.br`, se quiser)
 
 ---
 
@@ -78,7 +78,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 SUPABASE_ANON_KEY=<anon-key>
 ANTHROPIC_API_KEY=<sk-ant-...>
 JWT_SECRET=<não usado com JWKS, mas manter compatibilidade>
-FRONTEND_URL=https://usefuncionaria.com.br
+FRONTEND_URL=https://educarse-ia.com.br
 STRIPE_SECRET_KEY=<sk_...> (opcional por enquanto)
 STRIPE_WEBHOOK_SECRET=<whsec_...> (opcional por enquanto)
 STRIPE_PRICE_ID_PRO=<price_...> (opcional por enquanto)
@@ -89,16 +89,16 @@ YOUTUBE_API_KEY=<key> (opcional, degrada graciosamente)
 
 ### 3.4 Domínio customizado
 
-Settings → Networking → Custom Domain → `api.usefuncionaria.com.br`
+Settings → Networking → Custom Domain → `api.educarse-ia.com.br`
 
 Railway vai pedir um registro CNAME. Exemplo:
-- **CNAME:** `api.usefuncionaria.com.br` → `<seu-service>.up.railway.app`
+- **CNAME:** `api.educarse-ia.com.br` → `<seu-service>.up.railway.app`
 
 ---
 
 ## 4. DNS — Configurar no registrador do domínio
 
-No painel onde registrou `usefuncionaria.com.br`, crie os registros:
+No painel onde registrou `educarse-ia.com.br`, crie os registros:
 
 | Tipo  | Nome  | Valor                          | TTL  |
 |-------|-------|--------------------------------|------|
@@ -112,8 +112,8 @@ Os valores exatos de CNAME serão fornecidos pela Vercel e Railway nos passos an
 
 ## 5. Checklist pós-deploy
 
-- [ ] `https://usefuncionaria.com.br` carrega a landing page
-- [ ] `https://api.usefuncionaria.com.br/health` retorna `{"status":"ok"}`
+- [ ] `https://educarse-ia.com.br` carrega a landing page
+- [ ] `https://api.educarse-ia.com.br/health` retorna `{"status":"ok"}`
 - [ ] Login funciona (Supabase redirect URL correto)
 - [ ] Criar plano funciona (API recebe request, Claude responde)
 - [ ] CORS permite requests do frontend para a API
@@ -123,7 +123,7 @@ Os valores exatos de CNAME serão fornecidos pela Vercel e Railway nos passos an
 
 ## Troubleshooting
 
-**CORS error no browser:** Verificar se `FRONTEND_URL` no Railway é exatamente `https://usefuncionaria.com.br` (sem trailing slash).
+**CORS error no browser:** Verificar se `FRONTEND_URL` no Railway é exatamente `https://educarse-ia.com.br` (sem trailing slash).
 
 **Login redireciona para URL errada:** Verificar Site URL e Redirect URLs no Supabase Auth settings.
 

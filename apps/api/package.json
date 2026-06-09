@@ -1,5 +1,5 @@
 {
-  "name": "@funcionaria/api",
+  "name": "@educarseia/api",
   "version": "0.1.0",
   "private": true,
   "main": "dist/server.js",
@@ -17,7 +17,7 @@
     "@fastify/jwt": "^10.0.0",
     "@fastify/multipart": "^9.4.0",
     "@fastify/rate-limit": "^10.3.0",
-    "@funcionaria/types": "*",
+    "@educarseia/types": "*",
     "@supabase/ssr": "0.9.0",
     "@supabase/supabase-js": "^2.43.0",
     "dotenv": "^16.4.5",

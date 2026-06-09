@@ -1,10 +1,10 @@
 // ============================================================
-// @funcionaria/types
+// @educarseia/types
 // Fonte única de verdade para tipos compartilhados entre
 // apps/web (Next.js) e apps/api (Fastify).
 //
 // Frontend:  import type { Plan } from '@/types'
-// Backend:   import type { Plan } from '@funcionaria/types'
+// Backend:   import type { Plan } from '@educarseia/types'
 // ============================================================
 
 export type UserPlan = 'free' | 'pro'
