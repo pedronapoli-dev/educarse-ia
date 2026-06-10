@@ -2,20 +2,45 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Clock, CalendarDays, ChevronRight, Loader2 } from 'lucide-react'
+import { Plus, Clock, CalendarDays, ChevronRight, Loader2, AlertTriangle } from 'lucide-react'
 import { plansApi } from '@/lib/api'
+import { createClient } from '@/lib/supabase'
 import { PLAN_STATUS_CONFIG, getProgressBarColor, formatDateBR } from '@/lib/constants'
-import type { Plan, LoadingState } from '@/types'
+import type { Plan, LoadingState, User } from '@/types'
+import { PLAN_LIMITS } from '@/types'
 
 const DashboardPage = () => {
   const [plans, setPlans] = useState<Plan[]>([])
+  const [user, setUser]   = useState<User | null>(null)
   const [state, setState] = useState<LoadingState>('loading')
 
   useEffect(() => {
-    plansApi.list()
-      .then(res => { setPlans(res.plans); setState('success') })
+    const supabase = createClient()
+    Promise.all([
+      plansApi.list(),
+      supabase.auth.getUser().then(({ data }) =>
+        data.user
+          ? supabase.from('users').select('*').eq('id', data.user.id).single().then(r => r.data)
+          : null
+      ),
+    ])
+      .then(([plansRes, userData]) => {
+        setPlans(plansRes.plans)
+        setUser(userData as User | null)
+        setState('success')
+      })
       .catch(() => setState('error'))
   }, [])
+
+  // Aviso de uso de API calls (>= 80%)
+  const usageWarning = useMemo(() => {
+    if (!user) return null
+    const limits = PLAN_LIMITS[user.plan]
+    if (limits.maxApiCallsPerMonth === null) return null
+    const percent = Math.round((user.api_calls_this_month / limits.maxApiCallsPerMonth) * 100)
+    if (percent < 80) return null
+    return { used: user.api_calls_this_month, max: limits.maxApiCallsPerMonth, percent }
+  }, [user])
 
   const { active, avgProgress, nextExam } = useMemo(() => {
     const active = plans.filter(p => p.status === 'active')
@@ -47,6 +72,25 @@ const DashboardPage = () => {
           <Plus size={14} /> Novo plano
         </Link>
       </div>
+
+      {/* Banner de aviso de uso */}
+      {usageWarning && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg bg-amber-50 px-4 py-3 ring-1 ring-amber-200">
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-amber-500" />
+          <div className="flex-1 text-sm">
+            <span className="font-semibold text-amber-800">
+              Você usou {usageWarning.percent}% das suas gerações este mês
+            </span>
+            <span className="text-amber-700">
+              {' '}({usageWarning.used}/{usageWarning.max}).{' '}
+            </span>
+            <Link href="/planos" className="font-semibold text-amber-800 underline hover:text-amber-700">
+              Fazer upgrade
+            </Link>
+            {' '}para continuar usando exercícios e recalibrações sem interrupção.
+          </div>
+        </div>
+      )}
 
       {plans.length === 0 ? (
         /* Empty state */

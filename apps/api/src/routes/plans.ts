@@ -2,8 +2,8 @@ import { FastifyPluginAsync } from 'fastify'
 import { supabase } from '../lib/supabase'
 import { getUserId } from '../plugins/auth'
 import { generateAndSavePlan, completeSession } from '../services/planService'
-
-const FREE_PLAN_LIMIT = 2
+import { checkPlansLimit } from '../lib/limits'
+import type { UserPlan } from '@educarseia/types'
 
 export const plansRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -45,8 +45,9 @@ export const plansRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request, reply) => {
     const userId = getUserId(request)
     const { data: user } = await supabase.from('users').select('plan, plans_count').eq('id', userId).single()
-    if (user?.plan === 'free' && (user?.plans_count ?? 0) >= FREE_PLAN_LIMIT)
-      return reply.status(402).send({ error: 'Limite do plano gratuito atingido.', upgrade_url: '/planos' })
+    const limitResult = await checkPlansLimit(userId, (user?.plan ?? 'free') as UserPlan, user?.plans_count ?? 0)
+    if (!limitResult.allowed)
+      return reply.status(402).send(limitResult.limited)
     const sp = request.body.student_profile
     const plan = await generateAndSavePlan({
       userId, subjectId: request.body.subject_id,

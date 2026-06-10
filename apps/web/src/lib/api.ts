@@ -1,7 +1,18 @@
 import { createClient } from './supabase'
-import type { Plan, Subject, Exercise, CreatePlanInput, PlanCheckin, RecalibrateResult } from '@/types'
+import type { Plan, Subject, Exercise, CreatePlanInput, PlanCheckin, RecalibrateResult, LimitedResponse } from '@/types'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+
+export class ApiLimitError extends Error {
+  readonly limited = true
+  readonly upgrade_url: string
+  readonly usage: LimitedResponse['usage']
+  constructor(data: LimitedResponse) {
+    super('Limite do plano atingido.')
+    this.upgrade_url = data.upgrade_url
+    this.usage       = data.usage
+  }
+}
 
 async function getAuthHeader(): Promise<Record<string, string>> {
   const supabase = createClient()
@@ -17,9 +28,17 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     headers: { 'Content-Type': 'application/json', ...authHeader },
     body: body ? JSON.stringify(body) : undefined,
   })
+  if (res.status === 402) {
+    const data = await res.json().catch(() => ({}))
+    throw new ApiLimitError(data as LimitedResponse)
+  }
   if (!res.ok) { const err = await res.json().catch(() => ({ error: res.statusText })); throw { status: res.status, ...err } }
   if (res.status === 204) return undefined as T
   return res.json()
+}
+
+export const api = {
+  post: <T>(path: string, body: unknown) => request<T>('POST', path, body),
 }
 
 export const subjectsApi = {

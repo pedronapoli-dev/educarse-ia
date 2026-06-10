@@ -1,13 +1,13 @@
 import { FastifyPluginAsync } from 'fastify'
+import type { UserPlan } from '@educarseia/types'
 import { runDiagnosis }     from '../services/diagnoseService'
 import { runCheckin }       from '../services/checkinService'
 import { runRecalibration } from '../services/recalibrateService'
+import { supabase }         from '../lib/supabase'
+import { getUserId }        from '../plugins/auth'
+import { checkAndIncrementApiCall } from '../lib/limits'
 
-// Cost guardrails — enforced via cooldown on repeated calls
-// Phase 2: move cooldown checks to DB (study_sessions timestamps)
-const CHECKIN_COOLDOWN_HOURS     = 24   // 1 checkin/day/plan
-const RECALIBRATE_COOLDOWN_HOURS = 168  // 1 recalibration/week/plan
-const MAX_TOPICS_FOR_PLAN        = 30   // caps output tokens in generate-plan
+const MAX_TOPICS_FOR_PLAN = 30   // caps output tokens in generate-plan
 
 export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
 
@@ -99,6 +99,11 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
   }, async (request, reply) => {
+    const userId = getUserId(request)
+    const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single()
+    const callResult = await checkAndIncrementApiCall(userId, (user?.plan ?? 'free') as UserPlan)
+    if (!callResult.allowed) return reply.status(402).send(callResult.limited)
+
     const result = await runCheckin({
       week:                   request.body.week,
       topicsCovered:          request.body.topics_covered,
@@ -109,7 +114,7 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       hoursPlannedThisWeek:   request.body.hours_planned_this_week,
       applicationContext:     request.body.application_context,
     }, request.body.plan_id)
-    return reply.status(200).send({ checkin: result })
+    return reply.status(200).send({ checkin: result, ...(callResult.warning ?? {}) })
   })
 
   // POST /api/skills/recalibrate
@@ -147,6 +152,11 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
   }, async (request, reply) => {
+    const userId = getUserId(request)
+    const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single()
+    const callResult = await checkAndIncrementApiCall(userId, (user?.plan ?? 'free') as UserPlan)
+    if (!callResult.allowed) return reply.status(402).send(callResult.limited)
+
     const result = await runRecalibration({
       blockedTopic:       request.body.blocked_topic,
       blockType:          request.body.block_type,
@@ -157,6 +167,6 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       applicationContext: request.body.application_context,
       currentScaffolding: request.body.current_scaffolding,
     })
-    return reply.status(200).send({ recalibration: result })
+    return reply.status(200).send({ recalibration: result, ...(callResult.warning ?? {}) })
   })
 }

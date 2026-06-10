@@ -1,8 +1,9 @@
 import { FastifyPluginAsync } from 'fastify'
-import type { PlanPhase } from '@educarseia/types'
+import type { PlanPhase, UserPlan } from '@educarseia/types'
 import { supabase } from '../lib/supabase'
 import { getUserId } from '../plugins/auth'
 import { generateAndSaveExercises, answerExercise } from '../services/exerciseService'
+import { checkAndIncrementApiCall } from '../lib/limits'
 
 export const exercisesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { plan_id: string; topic: string; subject_name: string; course?: string; count?: number; bloom_level?: string; plan_phase?: string } }>('/generate', {
@@ -14,10 +15,16 @@ export const exercisesRoutes: FastifyPluginAsync = async (fastify) => {
         plan_phase: { type: 'string', enum: ['inicial', 'intermediaria', 'final'] } } } },
   }, async (request, reply) => {
     const userId = getUserId(request)
+
+    const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single()
+    const callResult = await checkAndIncrementApiCall(userId, (user?.plan ?? 'free') as UserPlan)
+    if (!callResult.allowed) return reply.status(402).send(callResult.limited)
+
     const exercises = await generateAndSaveExercises({ userId, planId: request.body.plan_id,
       topic: request.body.topic, subjectName: request.body.subject_name, course: request.body.course,
       count: request.body.count, bloomLevel: request.body.bloom_level, planPhase: request.body.plan_phase as PlanPhase | undefined })
-    return reply.status(201).send({ exercises })
+
+    return reply.status(201).send({ exercises, ...(callResult.warning ?? {}) })
   })
 
   fastify.get<{ Querystring: { plan_id: string } }>('/', { preHandler: [fastify.authenticate] }, async (request, reply) => {

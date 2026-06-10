@@ -7,20 +7,35 @@
 // Backend:   import type { Plan } from '@educarseia/types'
 // ============================================================
 
-export type UserPlan = 'free' | 'pro'
+export type UserPlan = 'free' | 'basic' | 'pro' | 'max' | 'beta'
+
+export interface PlanLimits {
+  maxPlans:       number | null  // null = ilimitado
+  maxApiCallsPerMonth: number | null  // null = ilimitado
+}
+
+export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
+  free:  { maxPlans: 2,    maxApiCallsPerMonth: 10  },
+  basic: { maxPlans: 10,   maxApiCallsPerMonth: 30  },
+  pro:   { maxPlans: null, maxApiCallsPerMonth: 100 },
+  max:   { maxPlans: null, maxApiCallsPerMonth: null },
+  beta:  { maxPlans: null, maxApiCallsPerMonth: 100 },
+}
 
 export interface User {
-  id:                  string
-  email:               string
-  full_name?:          string | null
-  university?:         string | null
-  course?:             string | null
-  semester?:           number | null
-  plan:                UserPlan
-  plans_count:         number
-  stripe_customer_id?: string | null
-  created_at:          string
-  updated_at:          string
+  id:                     string
+  email:                  string
+  full_name?:             string | null
+  university?:            string | null
+  course?:                string | null
+  semester?:              number | null
+  plan:                   UserPlan
+  plans_count:            number
+  api_calls_this_month:   number
+  api_calls_reset_at?:    string | null
+  stripe_customer_id?:    string | null
+  created_at:             string
+  updated_at:             string
 }
 
 export type SubjectSourceType = 'pdf' | 'text' | 'manual'
@@ -225,6 +240,17 @@ export interface StudySession {
 export interface ApiError {
   error:        string
   upgrade_url?: string
+}
+
+export interface LimitedResponse {
+  limited:     true
+  upgrade_url: string
+  usage:       { used: number; max: number | null; percent: number }
+}
+
+export interface UsageWarning {
+  warning:     true
+  usage:       { used: number; max: number | null; percent: number }
 }
 
 // ── Router types ──────────────────────────────────────────────────────────────
