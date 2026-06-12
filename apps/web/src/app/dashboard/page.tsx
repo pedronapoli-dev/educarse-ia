@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Clock, CalendarDays, ChevronRight, Loader2, AlertTriangle } from 'lucide-react'
+import { Plus, Clock, CalendarDays, ChevronRight, AlertTriangle } from 'lucide-react'
 import { plansApi } from '@/lib/api'
 import { createClient } from '@/lib/supabase'
 import { PLAN_STATUS_CONFIG, getProgressBarColor, formatDateBR } from '@/lib/constants'
+import { DashboardSkeleton } from '@/components/DashboardSkeleton'
 import type { Plan, LoadingState, User } from '@/types'
 import { PLAN_LIMITS } from '@/types'
 
@@ -54,9 +55,18 @@ const DashboardPage = () => {
   }, [plans])
 
   if (state === 'loading') return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Loader2 className="animate-spin text-indigo-600" size={24} />
-    </div>
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="page-header">
+        <div>
+          <h1 className="text-2xl font-bold leading-7 text-gray-900">Meus Planos</h1>
+          <p className="mt-1 text-sm text-gray-500">Acompanhe o progresso de cada disciplina</p>
+        </div>
+        <Link href="/plan/new" className="btn-primary">
+          <Plus size={14} /> Novo plano
+        </Link>
+      </div>
+      <DashboardSkeleton />
+    </main>
   )
 
   return (

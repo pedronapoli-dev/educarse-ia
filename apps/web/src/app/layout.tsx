@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Toaster } from 'sonner'
 import './globals.css'
 import { Navbar } from '@/components/Navbar'
 
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} bg-gray-50 text-gray-900 antialiased`}>
         <Navbar />
         {children}
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   )

@@ -76,7 +76,10 @@ ANTHROPIC_API_KEY=
 JWT_SECRET=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID_BASIC=
 STRIPE_PRICE_ID_PRO=
+STRIPE_PRICE_ID_MAX=
+STRIPE_PRICE_ID_BETA=
 FRONTEND_URL=http://localhost:3000
 YOUTUBE_API_KEY=   # opcional
 PORT=3001
@@ -103,16 +106,20 @@ Ver `DEPLOY.md` para instruções completas.
 
 ---
 
-## Plano free vs pro
+## Planos
 
-| | Free | Pro |
-|-|------|-----|
-| Planos de estudo | 2 | Ilimitado |
-| Upload de ementa | ✓ | ✓ |
-| Repetição espaçada | ✓ | ✓ |
-| Exercícios adaptativos | ✓ | ✓ |
-| Check-in semanal | ✓ | ✓ |
-| Recalibração de plano | ✓ | ✓ |
+| | Free | Básico | Pro | Max | Beta |
+|-|------|--------|-----|-----|------|
+| Preço | R$ 0 | R$ 19,90/mês | R$ 29,90/mês | R$ 249,90/ano | R$ 14,90/mês* |
+| Planos de estudo | 2 | 10 | Ilimitado | Ilimitado | Ilimitado |
+| Calls de IA/mês | 10 | 30 | 100 | Ilimitado | 100 |
+| Upload de ementa | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Repetição espaçada | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Exercícios adaptativos | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Check-in semanal | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Recalibração de plano | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+\* Beta: oferta por tempo limitado (vagas limitadas).
 
 ---
 

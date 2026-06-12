@@ -4,6 +4,7 @@ import cors from '@fastify/cors'
 import multipart from '@fastify/multipart'
 import jwt, { type FastifyJWTOptions } from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
+import rawBody from 'fastify-raw-body'
 
 interface JwkKey {
   kty: string
@@ -94,6 +95,15 @@ async function bootstrap() {
 
   await server.register(multipart, {
     limits: { fileSize: 10 * 1024 * 1024 },
+  })
+
+  // Disponibiliza request.rawBody para rotas com config.rawBody: true
+  // (necessário para verificar a assinatura do webhook do Stripe)
+  await server.register(rawBody, {
+    field: 'rawBody',
+    global: false,
+    encoding: false,
+    runFirst: true,
   })
 
   // Suporta ES256 (novo Supabase) e RS256 (legado) automaticamente.

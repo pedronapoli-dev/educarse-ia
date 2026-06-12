@@ -3,12 +3,6 @@ import Stripe from 'stripe'
 import { supabase } from '../lib/supabase'
 import type { UserPlan } from '@educarseia/types'
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    rawBody?: Buffer
-  }
-}
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' })
 
 // Mapeia Price ID → tier do plano

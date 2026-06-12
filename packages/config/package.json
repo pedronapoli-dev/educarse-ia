@@ -4,5 +4,9 @@
   "private": true,
   "exports": {
     "./tsconfig/*": "./tsconfig/*.json"
+  },
+  "scripts": {
+    "type-check": "echo skip",
+    "test": "echo skip"
   }
 }

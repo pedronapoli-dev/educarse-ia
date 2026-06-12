@@ -17,7 +17,13 @@
       "Bash(grep -l 'RecalibrateResult' /Users/pedro/Developer/funcionaria/funcionaria/packages/types/dist/*)",
       "Bash(npx tsc:*)",
       "mcp__claude_ai_Supabase__list_migrations",
-      "mcp__claude_ai_Supabase__apply_migration"
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(npm install *)",
+      "Bash(sed -i.bak '/await app.register\\(rawBody, {/,/^  }\\)/d' src/routes/__tests__/webhook.test.ts)",
+      "Bash(npx vitest *)",
+      "mcp__claude_ai_Stripe__get_stripe_account_info",
+      "mcp__claude_ai_Stripe__fetch_stripe_resources",
+      "mcp__claude_ai_Stripe__stripe_api_search"
     ]
   }
 }

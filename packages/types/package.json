@@ -12,6 +12,8 @@
   },
   "scripts": {
     "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "echo skip",
     "clean": "rm -rf dist"
   }
 }
