@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx turbo run build --filter=@educarseia/web",
+  "buildCommand": "if [ -f package.json ] && grep -q 'workspaces' package.json; then npx turbo run build --filter=@educarseia/web; else cd ../.. && npx turbo run build --filter=@educarseia/web; fi",
   "outputDirectory": "apps/web/.next",
   "installCommand": "npm install",
   "framework": "nextjs"
