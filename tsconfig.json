@@ -12,6 +12,7 @@
     "declaration":                     true,
     "declarationMap":                  true,
     "sourceMap":                       true,
+    "baseUrl": ".",
     "paths": {
       "@educarseia/types": ["packages/types/dist/index.d.ts"],
       "@educarseia/types/*": ["packages/types/dist/*"]
