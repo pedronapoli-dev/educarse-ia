@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder values — NOT real credentials. Required because
+      # apps/api/src/lib/supabase.ts and apps/web/src/lib/supabase.ts call
+      # createClient() at module-load time, which throws immediately if
+      # these are undefined (no .env / .env.local exist in CI).
+      SUPABASE_URL: https://placeholder.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+      SUPABASE_ANON_KEY: placeholder-anon-key
+      JWT_SECRET: placeholder-jwt-secret
+      ANTHROPIC_API_KEY: sk-ant-placeholder
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      STRIPE_PRICE_ID_BASIC: price_placeholder
+      STRIPE_PRICE_ID_PRO: price_placeholder
+      STRIPE_PRICE_ID_MAX: price_placeholder
+      STRIPE_PRICE_ID_BETA: price_placeholder
+      FRONTEND_URL: http://localhost:3000
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
