@@ -7,6 +7,7 @@ import { ROOT_CAUSE_LABELS } from '@/lib/constants'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { LimitReachedBlock } from '@/components/LimitReachedBlock'
 import { CooldownNotice } from '@/components/CooldownNotice'
+import { cn } from '@/lib/utils'
 import type { Plan, ScheduleWeek, RecalibrateResult } from '@/types'
 
 interface Props {
@@ -58,17 +59,17 @@ export const RecalibrateModal = ({ plan, activeWeek, onClose }: Props) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-gray-500/75" onClick={onClose} />
+      <div className="absolute inset-0 bg-text/50" onClick={onClose} />
 
-      <div className="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:my-8 sm:max-w-lg sm:max-h-[80vh] sm:rounded-lg">
+      <div className="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:my-8 sm:max-w-lg sm:max-h-[80vh] sm:rounded-xl">
 
         {/* Header */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={16} className="text-amber-500" />
-            <h2 className="font-semibold text-gray-900">Estou travado</h2>
+            <AlertTriangle size={16} className="text-warning" />
+            <h2 className="font-semibold text-text">Estou travado</h2>
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Fechar">
+          <button onClick={onClose} className="rounded-md p-1.5 text-text-subtle hover:bg-surface-muted hover:text-text-muted" aria-label="Fechar">
             <X size={18} />
           </button>
         </div>
@@ -84,21 +85,22 @@ export const RecalibrateModal = ({ plan, activeWeek, onClose }: Props) => {
             <>
               {/* Block type selection */}
               <div>
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">O que esta acontecendo?</label>
+                <label className="text-sm font-semibold mb-2">O que esta acontecendo?</label>
                 <div className="space-y-2">
                   {BLOCK_OPTIONS.map(opt => (
                     <button
                       key={opt.value}
                       type="button"
                       onClick={() => setBlockType(opt.value)}
-                      className={`w-full text-left rounded-lg border px-4 py-3 transition-colors ${
+                      className={cn(
+                        'w-full text-left rounded-lg border px-4 py-3 transition-colors',
                         blockType === opt.value
-                          ? 'border-indigo-400 bg-indigo-50 ring-1 ring-indigo-400'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                          ? 'border-primary bg-primary-soft ring-1 ring-primary/20'
+                          : 'border-border hover:border-border-strong hover:bg-surface-muted',
+                      )}
                     >
-                      <p className="text-sm font-medium text-gray-900">{opt.label}</p>
-                      <p className="text-xs text-gray-500">{opt.description}</p>
+                      <p className="text-sm font-medium text-text">{opt.label}</p>
+                      <p className="text-xs text-text-muted">{opt.description}</p>
                     </button>
                   ))}
                 </div>
@@ -106,14 +108,14 @@ export const RecalibrateModal = ({ plan, activeWeek, onClose }: Props) => {
 
               {/* Topic selector */}
               <div>
-                <label htmlFor="blocked-topic" className="text-sm font-semibold text-gray-700">
+                <label htmlFor="blocked-topic" className="text-sm font-semibold">
                   Em qual topico?
                 </label>
                 <select
                   id="blocked-topic"
                   value={blockedTopic}
                   onChange={e => setBlockedTopic(e.target.value)}
-                  className="mt-1.5 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  className="mt-1.5"
                 >
                   <option value="">Selecione o topico...</option>
                   {incompleteTopics.map(t => (
@@ -122,7 +124,7 @@ export const RecalibrateModal = ({ plan, activeWeek, onClose }: Props) => {
                 </select>
               </div>
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p className="text-sm text-danger">{error}</p>}
 
               <button
                 onClick={handleSubmit}
@@ -144,10 +146,10 @@ const RecalibrateResultView = ({ result, onClose }: { result: RecalibrateResult;
     <div className="space-y-4">
       {/* Diagnosis */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Diagnostico</p>
-        <p className="text-sm text-gray-700 leading-relaxed">{result.diagnosis}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-text-subtle mb-1">Diagnostico</p>
+        <p className="text-sm text-text leading-relaxed">{result.diagnosis}</p>
         {result.root_cause && (
-          <span className="mt-1.5 inline-block rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+          <span className="mt-1.5 inline-block badge-amber rounded-full">
             {ROOT_CAUSE_LABELS[result.root_cause] ?? result.root_cause}
           </span>
         )}
@@ -156,12 +158,12 @@ const RecalibrateResultView = ({ result, onClose }: { result: RecalibrateResult;
       {/* Actions */}
       {result.actions && result.actions.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Acoes recomendadas</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-text-subtle mb-2">Acoes recomendadas</p>
           <ul className="space-y-2">
             {result.actions.map((a, i) => (
-              <li key={i} className="rounded-md bg-gray-50 p-3 ring-1 ring-gray-200">
-                <p className="text-sm font-medium text-gray-900">{a.description}</p>
-                <p className="mt-0.5 text-xs text-gray-500">{a.rationale}</p>
+              <li key={i} className="rounded-md border border-border bg-surface-muted p-3">
+                <p className="text-sm font-medium text-text">{a.description}</p>
+                <p className="mt-0.5 text-xs text-text-muted">{a.rationale}</p>
               </li>
             ))}
           </ul>
@@ -170,18 +172,18 @@ const RecalibrateResultView = ({ result, onClose }: { result: RecalibrateResult;
 
       {/* Motivational message */}
       {result.motivational_message && (
-        <div className="rounded-md bg-indigo-50 px-4 py-3 ring-1 ring-inset ring-indigo-100">
-          <p className="text-sm text-indigo-700 leading-relaxed">{result.motivational_message}</p>
+        <div className="rounded-md bg-primary-soft px-4 py-3 ring-1 ring-inset ring-primary/10">
+          <p className="text-sm text-on-primary-soft leading-relaxed">{result.motivational_message}</p>
         </div>
       )}
 
       {/* Topics to skip */}
       {result.topics_to_skip && result.topics_to_skip.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-gray-400 mb-1">Topicos que podem ser pulados</p>
+          <p className="text-xs font-semibold text-text-subtle mb-1">Topicos que podem ser pulados</p>
           <div className="flex flex-wrap gap-1.5">
             {result.topics_to_skip.map((t) => (
-              <span key={t} className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-600">{t}</span>
+              <span key={t} className="badge-gray rounded-full">{t}</span>
             ))}
           </div>
         </div>

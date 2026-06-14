@@ -1,7 +1,9 @@
 'use client'
 
+import './globals.css'
+
 const GlobalError = ({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string }
@@ -9,16 +11,13 @@ const GlobalError = ({
 }) => {
   return (
     <html lang="pt-BR">
-      <body className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-900 antialiased">
+      <body className="flex min-h-screen items-center justify-center bg-bg font-sans text-text antialiased">
         <main className="max-w-md px-4 text-center">
           <h2 className="text-lg font-semibold">Algo deu errado</h2>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-text-muted">
             Ocorreu um erro inesperado. Tente recarregar a página.
           </p>
-          <button
-            onClick={reset}
-            className="mt-6 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-          >
+          <button onClick={reset} className="btn-primary mt-6">
             Tentar novamente
           </button>
         </main>

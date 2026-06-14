@@ -31,7 +31,11 @@
       "Bash(python3 -c \"import yaml; yaml.safe_load\\(open\\('.github/workflows/ci.yaml'\\)\\)\")",
       "Bash(python3 -c \"import json; json.load\\(open\\('vercel.json'\\)\\)\")",
       "Bash(npm config *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(python3 scripts/check_contrast.py \"#A8452A\" \"#FAF4E8\")",
+      "Bash(python3 scripts/check_contrast.py \"#1A4E5C\" \"#F0F9FB\")",
+      "Bash(python3 .claude/skills/agente-designer-senior/scripts/check_contrast.py \"#1A4E5C\" \"#F0F9FB\")",
+      "Bash(python3 .claude/skills/agente-designer-senior/scripts/check_contrast.py \"#1A4E5C\" \"#DDF0F5\")"
     ],
     "additionalDirectories": [
       "/Users/pedro/Developer/funcionaria/funcionaria"

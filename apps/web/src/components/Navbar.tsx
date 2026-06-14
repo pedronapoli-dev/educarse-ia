@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { GraduationCap, Plus, LogOut, Settings } from 'lucide-react'
+import { Plus, LogOut, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
+import { BrandMark } from '@/components/BrandMark'
 
 export const Navbar = () => {
   const pathname = usePathname()
@@ -18,29 +20,30 @@ export const Navbar = () => {
     router.refresh()
   }
 
+  const navLinkClass = (href: string) =>
+    cn(
+      'rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-fast ease-standard',
+      pathname === href
+        ? 'bg-surface-muted text-text'
+        : 'text-text-muted hover:bg-surface-muted hover:text-text',
+    )
+
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+    <header className="sticky top-0 z-40 bg-surface border-b border-border">
       <nav className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8" aria-label="Global">
         <div className="flex h-14 items-center justify-between">
 
-          {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600">
-              <GraduationCap className="text-white" size={16} aria-hidden="true" />
-            </div>
-            <span className="text-sm font-bold tracking-tight text-gray-900">educar-se-ia</span>
+          {/* Logo / wordmark */}
+          <Link href="/dashboard" className="flex items-center gap-2.5 group">
+            <BrandMark />
+            <span className="text-sm font-semibold tracking-tight text-text group-hover:text-primary transition-colors duration-fast ease-standard">
+              educar-se-ia
+            </span>
           </Link>
 
-          {/* Right side */}
-          <div className="flex items-center gap-x-2">
-            <Link
-              href="/dashboard"
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                pathname === '/dashboard'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-            >
+          {/* Navegação direita */}
+          <div className="flex items-center gap-x-1">
+            <Link href="/dashboard" className={navLinkClass('/dashboard')}>
               Planos
             </Link>
 
@@ -51,11 +54,7 @@ export const Navbar = () => {
             <Link
               href="/conta"
               title="Minha conta"
-              className={`ml-1 rounded-md p-2 transition-colors ${
-                pathname === '/conta'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-              }`}
+              className={cn(navLinkClass('/conta'), 'ml-1 p-2')}
             >
               <Settings size={15} aria-hidden="true" />
             </Link>

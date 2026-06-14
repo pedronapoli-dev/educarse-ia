@@ -7,6 +7,7 @@ import {
   Check, Sparkles, Zap, Crown, GraduationCap, ArrowLeft, Loader2,
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { cn } from '@/lib/utils'
 
 // ── Dados dos planos ──────────────────────────────────────────
 
@@ -116,36 +117,36 @@ const PlanosPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-bg py-12 px-4 sm:px-6 lg:px-8">
 
       {/* Header */}
       <div className="mx-auto max-w-4xl">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors mb-8"
+          className="inline-flex items-center gap-1.5 text-sm text-text-subtle hover:text-text-muted transition-colors mb-8"
         >
           <ArrowLeft size={13} /> Voltar
         </Link>
 
         <div className="text-center mb-10">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Escolha seu plano</h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <h1 className="font-display text-2xl font-bold text-text sm:text-3xl">Escolha seu plano</h1>
+          <p className="mt-2 text-sm text-text-muted">
             Cancele quando quiser. Sem taxa de cancelamento.
           </p>
         </div>
 
         {/* Beta callout */}
-        <div className="mb-8 rounded-xl bg-indigo-50 ring-1 ring-indigo-200 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="mb-8 rounded-lg bg-primary-soft ring-1 ring-primary/10 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-indigo-800">🎓 Oferta beta — vagas limitadas</p>
-            <p className="text-sm text-indigo-600 mt-0.5">
+            <p className="text-sm font-semibold text-on-primary-soft">🎓 Oferta beta — vagas limitadas</p>
+            <p className="text-sm text-on-primary-soft/80 mt-0.5">
               Apoie o projeto desde o início e trave o Pro por <strong>R$ 14,90/mês para sempre</strong>.
             </p>
           </div>
           <button
             onClick={() => handleCheckout('beta')}
             disabled={loading !== null}
-            className="flex-shrink-0 inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors disabled:opacity-60"
+            className="btn-primary flex-shrink-0"
           >
             {loading === 'beta' && <Loader2 size={14} className="animate-spin" />}
             Quero ser beta user
@@ -162,44 +163,44 @@ const PlanosPage = () => {
             return (
               <div
                 key={plan.key}
-                className={`relative flex flex-col rounded-xl bg-white p-5 ring-1 shadow-sm ${
-                  plan.highlight
-                    ? 'ring-indigo-400 shadow-indigo-100/60'
-                    : 'ring-gray-200'
-                }`}
+                className={cn(
+                  'relative flex flex-col rounded-lg bg-surface p-5 ring-1',
+                  plan.highlight ? 'ring-accent/30 shadow-md' : 'ring-border shadow-xs',
+                )}
               >
                 {plan.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="inline-flex items-center rounded-full bg-indigo-600 px-3 py-0.5 text-xs font-semibold text-white">
+                    <span className="badge-accent rounded-full">
                       Mais popular
                     </span>
                   </div>
                 )}
 
                 <div className="mb-4">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg mb-3 ${
-                    plan.highlight ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'
-                  }`}>
+                  <div className={cn(
+                    'flex h-9 w-9 items-center justify-center rounded-lg mb-3',
+                    plan.highlight ? 'bg-accent text-on-accent' : 'bg-surface-muted text-text-muted',
+                  )}>
                     <Icon size={18} />
                   </div>
-                  <h2 className="text-base font-bold text-gray-900">{plan.name}</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">{plan.description}</p>
+                  <h2 className="text-base font-bold text-text">{plan.name}</h2>
+                  <p className="text-xs text-text-muted mt-0.5">{plan.description}</p>
                 </div>
 
                 <div className="mb-5">
-                  <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
-                  <span className="text-sm text-gray-500">{plan.period}</span>
+                  <span className="text-2xl font-bold text-text">{plan.price}</span>
+                  <span className="text-sm text-text-muted">{plan.period}</span>
                 </div>
 
                 <ul className="space-y-2 mb-6 flex-1">
                   {plan.features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-gray-700">
-                      <Check size={13} className="mt-0.5 flex-shrink-0 text-green-500" />
+                    <li key={f} className="flex items-start gap-2 text-xs text-text-muted">
+                      <Check size={13} className="mt-0.5 flex-shrink-0 text-success" />
                       {f}
                     </li>
                   ))}
                   {plan.missing.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-gray-400 line-through">
+                    <li key={f} className="flex items-start gap-2 text-xs text-text-subtle line-through">
                       <span className="mt-0.5 flex-shrink-0 w-[13px]" />
                       {f}
                     </li>
@@ -210,11 +211,7 @@ const PlanosPage = () => {
                   <button
                     onClick={() => handleCheckout(plan.key as PlanKey)}
                     disabled={loading !== null}
-                    className={`w-full rounded-md px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60 flex items-center justify-center gap-2 ${
-                      plan.highlight
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-                        : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                    }`}
+                    className={cn('w-full', plan.highlight ? 'btn-accent' : 'btn-secondary')}
                   >
                     {isLoading && <Loader2 size={14} className="animate-spin" />}
                     {plan.cta}
@@ -222,7 +219,7 @@ const PlanosPage = () => {
                 ) : (
                   <button
                     onClick={() => router.push('/dashboard')}
-                    className="w-full rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
+                    className="btn-secondary w-full"
                   >
                     {plan.cta}
                   </button>
@@ -232,7 +229,7 @@ const PlanosPage = () => {
           })}
         </div>
 
-        <p className="mt-8 text-center text-xs text-gray-400">
+        <p className="mt-8 text-center text-xs text-text-subtle">
           Pagamento processado com segurança pelo Stripe. Cancele a qualquer momento pelo dashboard.
         </p>
       </div>

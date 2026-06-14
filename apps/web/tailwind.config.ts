@@ -22,9 +22,11 @@ const config: Config = {
       //   Próximo passo: adicionar via next/font ou <link> do Google Fonts.
       // Corpo/UI: Inter — permanece. Excelente para leitura de texto denso.
       fontFamily: {
-        sans:    ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        display: ['Fraunces', 'Georgia', 'ui-serif', 'serif'],
-        mono:    ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        // CSS vars injetadas pelo next/font em layout.tsx.
+        // Fallbacks garantem leitura mesmo antes do carregamento.
+        sans:    ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['var(--font-display)', 'Georgia', 'ui-serif', 'serif'],
+        mono:    ['ui-monospace', 'SFMono-Regular', 'monospace'],
       },
 
       // ── Escala tipográfica (base 16, razão ≈1.25 — terça maior) ──────────
@@ -67,20 +69,30 @@ const config: Config = {
         'primary-hover':'rgb(var(--color-primary-hover) / <alpha-value>)',
         'on-primary':   'rgb(var(--color-on-primary) / <alpha-value>)',
         'primary-soft': 'rgb(var(--color-primary-soft) / <alpha-value>)',
+        'on-primary-soft': 'rgb(var(--color-on-primary-soft) / <alpha-value>)',
 
         accent:         'rgb(var(--color-accent) / <alpha-value>)',
         'accent-hover': 'rgb(var(--color-accent-hover) / <alpha-value>)',
         'on-accent':    'rgb(var(--color-on-accent) / <alpha-value>)',
         'accent-soft':  'rgb(var(--color-accent-soft) / <alpha-value>)',
+        'on-accent-soft': 'rgb(var(--color-on-accent-soft) / <alpha-value>)',
 
         success:        'rgb(var(--color-success) / <alpha-value>)',
         'success-soft': 'rgb(var(--color-success-soft) / <alpha-value>)',
+        'success-border': 'rgb(var(--color-success-border) / <alpha-value>)',
+        'on-success-soft': 'rgb(var(--color-on-success-soft) / <alpha-value>)',
         warning:        'rgb(var(--color-warning) / <alpha-value>)',
         'warning-soft': 'rgb(var(--color-warning-soft) / <alpha-value>)',
+        'warning-border': 'rgb(var(--color-warning-border) / <alpha-value>)',
+        'on-warning-soft': 'rgb(var(--color-on-warning-soft) / <alpha-value>)',
         danger:         'rgb(var(--color-danger) / <alpha-value>)',
         'danger-soft':  'rgb(var(--color-danger-soft) / <alpha-value>)',
+        'danger-border': 'rgb(var(--color-danger-border) / <alpha-value>)',
+        'on-danger-soft': 'rgb(var(--color-on-danger-soft) / <alpha-value>)',
         info:           'rgb(var(--color-info) / <alpha-value>)',
         'info-soft':    'rgb(var(--color-info-soft) / <alpha-value>)',
+        'info-border':  'rgb(var(--color-info-border) / <alpha-value>)',
+        'on-info-soft': 'rgb(var(--color-on-info-soft) / <alpha-value>)',
 
         // ── Primitivos: escalas cruas (use só quando tokens semânticos não bastam) ─
         teal: {

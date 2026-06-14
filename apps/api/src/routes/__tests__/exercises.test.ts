@@ -10,7 +10,7 @@ import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
-const { mockSingle, mockEq, mockSelect, mockFrom, mockCheckAndIncrementApiCall, mockGenerateAndSaveExercises } = vi.hoisted(() => {
+const { mockSingle, mockFrom, mockCheckAndIncrementApiCall, mockGenerateAndSaveExercises } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockEq     = vi.fn(() => ({ single: mockSingle }))
   const mockSelect = vi.fn(() => ({ eq: mockEq }))

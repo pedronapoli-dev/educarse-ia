@@ -58,8 +58,8 @@ const DashboardPage = () => {
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold leading-7 text-gray-900">Meus Planos</h1>
-          <p className="mt-1 text-sm text-gray-500">Acompanhe o progresso de cada disciplina</p>
+          <h1 className="font-display text-2xl font-bold leading-tight text-text">Meus Planos</h1>
+          <p className="mt-1 text-sm text-text-muted">Acompanhe o progresso de cada disciplina</p>
         </div>
         <Link href="/plan/new" className="btn-primary">
           <Plus size={14} /> Novo plano
@@ -75,8 +75,8 @@ const DashboardPage = () => {
       {/* Page header */}
       <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold leading-7 text-gray-900">Meus Planos</h1>
-          <p className="mt-1 text-sm text-gray-500">Acompanhe o progresso de cada disciplina</p>
+          <h1 className="font-display text-2xl font-bold leading-tight text-text">Meus Planos</h1>
+          <p className="mt-1 text-sm text-text-muted">Acompanhe o progresso de cada disciplina</p>
         </div>
         <Link href="/plan/new" className="btn-primary">
           <Plus size={14} /> Novo plano
@@ -85,16 +85,14 @@ const DashboardPage = () => {
 
       {/* Banner de aviso de uso */}
       {usageWarning && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg bg-amber-50 px-4 py-3 ring-1 ring-amber-200">
-          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-amber-500" />
-          <div className="flex-1 text-sm">
-            <span className="font-semibold text-amber-800">
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-warning-border bg-warning-soft px-4 py-3">
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-warning" />
+          <div className="flex-1 text-sm text-on-warning-soft">
+            <span className="font-semibold">
               Você usou {usageWarning.percent}% das suas gerações este mês
             </span>
-            <span className="text-amber-700">
-              {' '}({usageWarning.used}/{usageWarning.max}).{' '}
-            </span>
-            <Link href="/planos" className="font-semibold text-amber-800 underline hover:text-amber-700">
+            {' '}({usageWarning.used}/{usageWarning.max}).{' '}
+            <Link href="/planos" className="font-semibold underline hover:opacity-80">
               Fazer upgrade
             </Link>
             {' '}para continuar usando exercícios e recalibrações sem interrupção.
@@ -104,19 +102,17 @@ const DashboardPage = () => {
 
       {plans.length === 0 ? (
         /* Empty state */
-        <div className="text-center py-16">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50">
-            <Plus className="text-indigo-600" size={22} />
+        <div className="flex flex-col items-center gap-4 py-22 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-soft">
+            <Plus className="text-primary" size={24} />
           </div>
-          <h3 className="text-sm font-semibold text-gray-900">Nenhum plano criado</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Faça upload da ementa para começar.
+          <h2 className="font-display text-2xl font-bold text-text">Nenhum plano ainda</h2>
+          <p className="max-w-prose-sm text-base text-text-muted">
+            Faça upload da ementa e gere seu primeiro plano de estudos em menos de 60 segundos.
           </p>
-          <div className="mt-6">
-            <Link href="/plan/new" className="btn-primary">
-              <Plus size={14} /> Criar primeiro plano
-            </Link>
-          </div>
+          <Link href="/plan/new" className="btn-accent">
+            <Plus size={16} /> Criar meu primeiro plano
+          </Link>
         </div>
       ) : (
         <>
@@ -134,22 +130,22 @@ const DashboardPage = () => {
               },
             ].map(stat => (
               <div key={stat.label} className="card px-4 py-5 sm:p-6">
-                <dt className="truncate text-sm font-medium text-gray-500">{stat.label}</dt>
-                <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{stat.value}</dd>
+                <dt className="truncate text-sm font-medium text-text-muted">{stat.label}</dt>
+                <dd className="mt-1 text-3xl font-semibold tracking-tight text-text">{stat.value}</dd>
               </div>
             ))}
           </dl>
 
           {/* Plans list */}
           <div className="card">
-            <ul role="list" className="divide-y divide-gray-100">
+            <ul role="list" className="divide-y divide-border">
               {plans.map(plan => <PlanRow key={plan.id} plan={plan} />)}
             </ul>
 
-            <div className="border-t border-gray-100 px-5 py-3">
+            <div className="border-t border-border px-5 py-3">
               <Link
                 href="/plan/new"
-                className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-hover"
               >
                 <Plus size={14} /> Adicionar disciplina
               </Link>
@@ -172,28 +168,28 @@ const PlanRow = ({ plan }: { plan: Plan }) => {
     <li>
       <Link
         href={`/plan/${plan.id}`}
-        className="flex items-center justify-between gap-x-6 px-5 py-4 hover:bg-gray-50 transition-colors"
+        className="flex items-center justify-between gap-x-6 px-5 py-4 hover:bg-surface-muted transition-colors"
       >
         {/* Left */}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-0.5">
             <span className={status.cls}>{status.label}</span>
           </div>
-          <p className="truncate text-sm font-semibold text-gray-900">{plan.title}</p>
+          <p className="truncate text-sm font-semibold text-text">{plan.title}</p>
           {plan.subjects && (
-            <p className="truncate text-xs text-gray-400 mt-0.5">{plan.subjects.name}</p>
+            <p className="truncate text-xs text-text-subtle mt-0.5">{plan.subjects.name}</p>
           )}
           {/* Progress bar */}
           <div className="mt-2 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
               <div className={`h-1.5 rounded-full ${barColor}`} style={{ width: `${plan.progress}%` }} />
             </div>
-            <span className="text-xs tabular-nums text-gray-500">{plan.progress}%</span>
+            <span className="text-xs tabular-nums text-text-muted">{plan.progress}%</span>
           </div>
         </div>
 
         {/* Right meta */}
-        <div className="hidden sm:flex flex-shrink-0 items-center gap-4 text-xs text-gray-400">
+        <div className="hidden sm:flex flex-shrink-0 items-center gap-4 text-xs text-text-subtle">
           <span className="flex items-center gap-1">
             <Clock size={11} /> {plan.total_weeks}sem
           </span>
@@ -203,7 +199,7 @@ const PlanRow = ({ plan }: { plan: Plan }) => {
               {formatDateBR(plan.exam_date)}
             </span>
           )}
-          <ChevronRight size={14} className="text-gray-300" />
+          <ChevronRight size={14} className="text-border-strong" />
         </div>
       </Link>
     </li>

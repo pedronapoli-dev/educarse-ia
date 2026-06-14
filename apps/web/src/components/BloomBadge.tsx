@@ -1,12 +1,17 @@
+import { cn } from '@/lib/utils'
 import type { BloomLevel } from '@/types'
 
-const BLOOM_CONFIG: Record<BloomLevel, { label: string; className: string }> = {
-  lembrar:  { label: 'Recordar',     className: 'bg-gray-100   text-gray-600'   },
-  entender: { label: 'Compreender',  className: 'bg-blue-100   text-blue-700'   },
-  aplicar:  { label: 'Aplicar',      className: 'bg-indigo-100 text-indigo-700' },
-  analisar: { label: 'Analisar',     className: 'bg-violet-100 text-violet-700' },
-  avaliar:  { label: 'Avaliar',      className: 'bg-amber-100  text-amber-700'  },
-  criar:    { label: 'Criar',        className: 'bg-emerald-100 text-emerald-700'},
+// Bloom → badge (CLAUDE.md "Design System"). barClass usa uma progressão
+// teal → terracota: complexidade cognitiva crescente espelha a transição de
+// rigor analítico (frio) para geração/síntese (quente) — Mayer, sinalização:
+// a cor da estrutura visual deve espelhar a estrutura conceitual.
+const BLOOM_CONFIG: Record<BloomLevel, { label: string; badgeClass: string; barClass: string }> = {
+  lembrar:  { label: 'Recordar',    badgeClass: 'badge-gray',    barClass: 'bg-creme-400' },
+  entender: { label: 'Compreender', badgeClass: 'badge-info',    barClass: 'bg-teal-300'  },
+  aplicar:  { label: 'Aplicar',     badgeClass: 'badge-primary', barClass: 'bg-teal-600'  },
+  analisar: { label: 'Analisar',    badgeClass: 'badge-accent',  barClass: 'bg-terra-400' },
+  avaliar:  { label: 'Avaliar',     badgeClass: 'badge-amber',   barClass: 'bg-warning'   },
+  criar:    { label: 'Criar',       badgeClass: 'badge-green',   barClass: 'bg-success'   },
 }
 
 interface BloomBadgeProps {
@@ -14,11 +19,11 @@ interface BloomBadgeProps {
   className?: string
 }
 
-export const BloomBadge = ({ level, className = '' }: BloomBadgeProps) => {
+export const BloomBadge = ({ level, className }: BloomBadgeProps) => {
   if (!level) return null
-  const { label, className: colorClass } = BLOOM_CONFIG[level]
+  const { label, badgeClass } = BLOOM_CONFIG[level]
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colorClass} ${className}`}>
+    <span className={cn(badgeClass, className)}>
       {label}
     </span>
   )
@@ -42,17 +47,14 @@ export const BloomDistribution = ({ days }: BloomDistributionProps) => {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Distribuição cognitiva</p>
+      <p className="text-xs font-medium text-text-subtle uppercase tracking-wide">Distribuição cognitiva</p>
       {/* Segmented bar */}
       <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
         {levels.map(level => {
           const count = counts[level] ?? 0
           if (count === 0) return null
           const pct = (count / total) * 100
-          const { className: colorClass } = BLOOM_CONFIG[level]
-          // Extract bg color from className (first token)
-          const bg = colorClass.split(' ')[0]
-          return <div key={level} style={{ width: `${pct}%` }} className={`${bg} rounded-full`} />
+          return <div key={level} style={{ width: `${pct}%` }} className={cn('rounded-full', BLOOM_CONFIG[level].barClass)} />
         })}
       </div>
       {/* Legend chips */}
@@ -61,7 +63,7 @@ export const BloomDistribution = ({ days }: BloomDistributionProps) => {
           const count = counts[level] ?? 0
           if (count === 0) return null
           return (
-            <span key={level} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${BLOOM_CONFIG[level].className}`}>
+            <span key={level} className={BLOOM_CONFIG[level].badgeClass}>
               {BLOOM_CONFIG[level].label}
               <span className="opacity-70">{count}</span>
             </span>

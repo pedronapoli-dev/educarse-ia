@@ -135,9 +135,12 @@
     --color-danger-border:   var(--danger-100);
     --color-on-danger-soft:  var(--danger-700);
 
+    /* info-soft é um tom abaixo de primary-soft (teal-50 vs teal-100): repetir
+       teal-100 tornava badge-info e badge-primary indistinguíveis lado a lado —
+       crítico na escala Bloom (Compreender vs. Aplicar). 8.59:1 ✅ AAA */
     --color-info:            var(--teal-800);
-    --color-info-soft:       var(--teal-100);
-    --color-info-border:     var(--teal-200);
+    --color-info-soft:       var(--teal-50);
+    --color-info-border:     var(--teal-100);
     --color-on-info-soft:    var(--teal-800);
 
     /* Foco — anel de foco visível (WCAG 2.2 — 3:1 mínimo sobre qualquer fundo) */

@@ -13,7 +13,7 @@ import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 const {
-  mockSingle, mockEq, mockSelect, mockFrom,
+  mockSingle, mockFrom,
   mockCheckSkillCooldown, mockRecordSkillUsage,
   mockCheckAndIncrementApiCall,
   mockRunCheckin, mockRunRecalibration,

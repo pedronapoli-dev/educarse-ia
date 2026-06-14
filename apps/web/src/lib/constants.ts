@@ -3,16 +3,16 @@ import type { UserPlan } from '@/types'
 export const SITE_URL = 'https://educarse-ia.com.br'
 
 export const getProgressBarColor = (progress: number): string =>
-  progress >= 75 ? 'bg-green-500' : progress >= 40 ? 'bg-indigo-600' : 'bg-amber-400'
+  progress >= 75 ? 'bg-success' : progress >= 40 ? 'bg-primary' : 'bg-warning'
 
 export const PLAN_LABELS: Record<UserPlan, string> = {
   free: 'Grátis', basic: 'Básico', pro: 'Pro', max: 'Max', beta: 'Beta',
 }
 
 export const PLAN_STATUS_CONFIG = {
-  active:    { label: 'Ativo',     cls: 'badge-indigo' },
-  completed: { label: 'Concluído', cls: 'badge-green'  },
-  archived:  { label: 'Arquivado', cls: 'badge-gray'   },
+  active:    { label: 'Ativo',     cls: 'badge-primary' },
+  completed: { label: 'Concluído', cls: 'badge-green'   },
+  archived:  { label: 'Arquivado', cls: 'badge-gray'    },
 } as const
 
 export const EXERCISE_TYPE_LABELS: Record<string, string> = {

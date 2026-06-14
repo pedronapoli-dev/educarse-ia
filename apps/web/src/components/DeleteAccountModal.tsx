@@ -37,38 +37,38 @@ export const DeleteAccountModal = ({ onClose }: Props) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-gray-500/75" onClick={onClose} />
+      <div className="absolute inset-0 bg-text/50" onClick={onClose} />
 
-      <div className="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:my-8 sm:max-w-md sm:max-h-[80vh] sm:rounded-lg">
+      <div className="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-3xl bg-surface shadow-xl sm:my-8 sm:max-w-md sm:max-h-[80vh] sm:rounded-lg">
 
         {/* Header */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={16} className="text-red-500" />
-            <h2 className="font-semibold text-gray-900">Excluir conta</h2>
+            <AlertTriangle size={16} className="text-danger" />
+            <h2 className="font-semibold text-text">Excluir conta</h2>
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Fechar">
+          <button onClick={onClose} className="rounded-md p-1.5 text-text-subtle hover:bg-surface-muted hover:text-text-muted" aria-label="Fechar">
             <X size={18} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <p className="text-sm text-gray-600 leading-relaxed">
-            Esta ação é <span className="font-semibold text-gray-900">permanente</span>. Todos os seus
+          <p className="text-sm text-text-muted leading-relaxed">
+            Esta ação é <span className="font-semibold text-text">permanente</span>. Todos os seus
             planos, disciplinas, exercícios e sessões de estudo serão excluídos. Se você tiver uma
             assinatura ativa, ela será cancelada.
           </p>
 
           {error && (
-            <div className="flex items-start gap-2.5 rounded-md bg-red-50 p-3.5 ring-1 ring-inset ring-red-200">
-              <AlertCircle className="mt-px flex-shrink-0 text-red-500" size={15} />
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="flex items-start gap-2.5 rounded-md bg-danger-soft p-3.5 ring-1 ring-inset ring-danger/20">
+              <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
+              <p className="text-sm text-on-danger-soft">{error}</p>
             </div>
           )}
 
           <div>
             <label htmlFor="confirm-delete">
-              Digite <span className="font-semibold text-gray-900">{CONFIRM_WORD}</span> para confirmar
+              Digite <span className="font-semibold text-text">{CONFIRM_WORD}</span> para confirmar
             </label>
             <div className="mt-1.5">
               <input
@@ -85,7 +85,7 @@ export const DeleteAccountModal = ({ onClose }: Props) => {
           <button
             onClick={handleDelete}
             disabled={confirmText !== CONFIRM_WORD || loading}
-            className="btn w-full bg-red-600 text-white hover:bg-red-500"
+            className="btn w-full bg-danger text-text-on-dark hover:bg-danger/90"
           >
             {loading && <Loader2 size={15} className="animate-spin" />}
             Excluir minha conta permanentemente
