@@ -1,6 +1,7 @@
 'use client'
 
 import { Clock } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { CooldownResponse } from '@/types'
 
 interface Props {
@@ -22,13 +23,13 @@ const formatRetryAt = (retryAt: string) => {
 
 export const CooldownNotice = ({ cooldownError, context = 'modal' }: Props) => {
   return (
-    <div className={`flex flex-col items-center text-center ${context === 'modal' ? 'py-10 px-6' : 'py-6 px-4'}`}>
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 mb-4">
-        <Clock className="text-indigo-500" size={20} />
+    <div className={cn('flex flex-col items-center text-center', context === 'modal' ? 'py-10 px-6' : 'py-6 px-4')}>
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-info-soft mb-4">
+        <Clock className="text-info" size={20} />
       </div>
 
-      <h3 className="text-sm font-semibold text-gray-900 mb-1">Aguarde um pouco</h3>
-      <p className="text-sm text-gray-500 max-w-xs">
+      <h3 className="text-sm font-semibold text-text mb-1">Aguarde um pouco</h3>
+      <p className="text-sm text-text-muted max-w-xs">
         {cooldownError.message} Disponível novamente {formatRetryAt(cooldownError.retry_at)}.
       </p>
     </div>

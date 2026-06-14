@@ -7,6 +7,7 @@ import { CHECKIN_ACTION_LABELS } from '@/lib/constants'
 import { useAsyncAction } from '@/hooks/useAsyncAction'
 import { LimitReachedBlock } from '@/components/LimitReachedBlock'
 import { CooldownNotice } from '@/components/CooldownNotice'
+import { cn } from '@/lib/utils'
 import type { Plan, PlanCheckin, ScheduleWeek } from '@/types'
 
 interface Props {
@@ -15,9 +16,9 @@ interface Props {
 }
 
 const TREND_CONFIG = {
-  'atrasado':  { label: 'Atrasado',  icon: TrendingDown, cls: 'text-red-600 bg-red-50 ring-red-200' },
-  'no-ritmo':  { label: 'No ritmo',  icon: Minus,        cls: 'text-green-600 bg-green-50 ring-green-200' },
-  'adiantado': { label: 'Adiantado', icon: TrendingUp,   cls: 'text-blue-600 bg-blue-50 ring-blue-200' },
+  'atrasado':  { label: 'Atrasado',  icon: TrendingDown, cls: 'text-danger bg-danger-soft ring-danger/20' },
+  'no-ritmo':  { label: 'No ritmo',  icon: Minus,        cls: 'text-success bg-success-soft ring-success/20' },
+  'adiantado': { label: 'Adiantado', icon: TrendingUp,   cls: 'text-info bg-info-soft ring-info/20' },
 }
 
 export const CheckinCard = ({ plan, activeWeek }: Props) => {
@@ -65,31 +66,31 @@ export const CheckinCard = ({ plan, activeWeek }: Props) => {
     return (
       <div className="card p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">Check-in da Semana {activeWeek}</h3>
-          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${trend.cls}`}>
+          <h3 className="text-sm font-semibold text-text">Check-in da Semana {activeWeek}</h3>
+          <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', trend.cls)}>
             <TrendIcon size={12} /> {trend.label}
           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs text-gray-400">Progresso quantitativo</p>
-            <p className="text-lg font-bold text-gray-900">{result.quantitative_progress}%</p>
+          <div className="rounded-md bg-surface-muted p-3">
+            <p className="text-xs text-text-subtle">Progresso quantitativo</p>
+            <p className="text-lg font-bold text-text">{result.quantitative_progress}%</p>
           </div>
-          <div className="rounded-md bg-gray-50 p-3">
-            <p className="text-xs text-gray-400">Progresso qualitativo</p>
-            <p className="text-lg font-bold text-gray-900">{result.qualitative_progress}%</p>
+          <div className="rounded-md bg-surface-muted p-3">
+            <p className="text-xs text-text-subtle">Progresso qualitativo</p>
+            <p className="text-lg font-bold text-text">{result.qualitative_progress}%</p>
           </div>
         </div>
 
         <div>
-          <p className="text-xs font-semibold text-gray-500 mb-1">
-            Acao recomendada: <span className="text-indigo-600">{CHECKIN_ACTION_LABELS[result.proposed_action] ?? result.proposed_action}</span>
+          <p className="text-xs font-semibold text-text-muted mb-1">
+            Acao recomendada: <span className="text-primary">{CHECKIN_ACTION_LABELS[result.proposed_action] ?? result.proposed_action}</span>
           </p>
-          <p className="text-sm text-gray-600 leading-relaxed">{result.action_rationale}</p>
+          <p className="text-sm text-text-muted leading-relaxed">{result.action_rationale}</p>
         </div>
 
-        <button onClick={() => { reset(); setOpen(false) }} className="text-xs text-gray-400 hover:text-gray-600">
+        <button onClick={() => { reset(); setOpen(false) }} className="text-xs text-text-subtle hover:text-text-muted">
           Fechar
         </button>
       </div>
@@ -116,7 +117,7 @@ export const CheckinCard = ({ plan, activeWeek }: Props) => {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-lg border border-dashed border-indigo-300 bg-indigo-50/50 px-4 py-3 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 hover:border-indigo-400"
+        className="w-full rounded-lg border border-dashed border-primary/30 bg-primary-soft/50 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary-soft hover:border-primary/50"
       >
         Fazer check-in da Semana {activeWeek}
       </button>
@@ -145,13 +146,13 @@ const CheckinForm = ({
 
   return (
     <div className="card p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-900">Check-in da Semana {week}</h3>
-      <p className="text-xs text-gray-500">
+      <h3 className="text-sm font-semibold text-text">Check-in da Semana {week}</h3>
+      <p className="text-xs text-text-muted">
         {completedCount}/{totalCount} sessoes concluidas nesta semana.
       </p>
 
       <div>
-        <label htmlFor="checkin-difficulties" className="text-sm font-medium text-gray-700">
+        <label htmlFor="checkin-difficulties">
           Teve alguma dificuldade?
         </label>
         <textarea
@@ -160,11 +161,11 @@ const CheckinForm = ({
           value={difficulties}
           onChange={e => setDifficulties(e.target.value)}
           placeholder="Ex: Nao entendi bem derivadas parciais..."
-          className="mt-1.5 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          className="mt-1.5"
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <div className="flex gap-3">
         <button onClick={onCancel} className="btn-secondary flex-1" disabled={loading}>

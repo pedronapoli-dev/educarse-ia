@@ -2,19 +2,19 @@ import { describe, it, expect } from 'vitest'
 import { getProgressBarColor, formatDateBR } from '../constants'
 
 describe('getProgressBarColor', () => {
-  it('retorna verde para progresso >= 75%', () => {
-    expect(getProgressBarColor(75)).toBe('bg-green-500')
-    expect(getProgressBarColor(100)).toBe('bg-green-500')
+  it('retorna success para progresso >= 75%', () => {
+    expect(getProgressBarColor(75)).toBe('bg-success')
+    expect(getProgressBarColor(100)).toBe('bg-success')
   })
 
-  it('retorna indigo para progresso entre 40% e 74%', () => {
-    expect(getProgressBarColor(40)).toBe('bg-indigo-600')
-    expect(getProgressBarColor(74)).toBe('bg-indigo-600')
+  it('retorna primary para progresso entre 40% e 74%', () => {
+    expect(getProgressBarColor(40)).toBe('bg-primary')
+    expect(getProgressBarColor(74)).toBe('bg-primary')
   })
 
-  it('retorna âmbar para progresso abaixo de 40%', () => {
-    expect(getProgressBarColor(0)).toBe('bg-amber-400')
-    expect(getProgressBarColor(39)).toBe('bg-amber-400')
+  it('retorna warning para progresso abaixo de 40%', () => {
+    expect(getProgressBarColor(0)).toBe('bg-warning')
+    expect(getProgressBarColor(39)).toBe('bg-warning')
   })
 })
 

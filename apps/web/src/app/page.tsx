@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import {
-  GraduationCap, Upload, UserCog, Sparkles, TrendingUp,
+  Upload, UserCog, Sparkles, TrendingUp,
   Brain, Layers, Target, BookOpen, BarChart3, RefreshCw, Zap,
   ArrowRight, CheckCircle2,
 } from 'lucide-react'
 import { Footer } from '@/components/Footer'
+import { BrandMark } from '@/components/BrandMark'
+import { cn } from '@/lib/utils'
 
 // ── Static data ──────────────────────────────────────────────
 
@@ -82,10 +84,13 @@ const MOCK_PLAN_WEEKS = [
   },
 ]
 
-const TYPE_COLORS: Record<string, string> = {
-  teoria:    'bg-indigo-50 text-indigo-700 ring-indigo-700/10',
-  exercicio: 'bg-purple-50 text-purple-700 ring-purple-700/10',
-  revisao:   'bg-amber-50  text-amber-700  ring-yellow-600/20',
+// Tipo de sessão → variante semântica de badge do sistema.
+// teoria = conteúdo conceitual (marca/teal) · exercício = esforço ativo (acento/terracota)
+// · revisão = atenção/Ebbinghaus (âmbar) — mesmo mapeamento de DayItem.
+const TYPE_BADGE: Record<string, string> = {
+  teoria:    'badge-primary',
+  exercicio: 'badge-accent',
+  revisao:   'badge-amber',
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -96,26 +101,26 @@ const TYPE_LABELS: Record<string, string> = {
 
 const LandingPage = () => {
   return (
-    <div className="bg-white">
+    <div className="bg-bg">
 
       {/* ── Header ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-gray-100">
+      <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-sm border-b border-border">
         <nav className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-600">
-                <GraduationCap className="text-white" size={16} />
-              </div>
-              <span className="text-sm font-bold tracking-tight text-gray-900">educar-se-ia</span>
-            </div>
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <BrandMark />
+              <span className="text-sm font-semibold tracking-tight text-text group-hover:text-primary transition-colors duration-fast ease-standard">
+                educar-se-ia
+              </span>
+            </Link>
             <div className="flex items-center gap-3">
-              <Link href="/planos" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/planos" className="text-sm font-medium text-text-muted hover:text-text transition-colors duration-fast ease-standard">
                 Planos
               </Link>
-              <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+              <Link href="/login" className="text-sm font-medium text-text-muted hover:text-text transition-colors duration-fast ease-standard">
                 Entrar
               </Link>
-              <Link href="/login" className="btn-primary py-1.5 text-sm">
+              <Link href="/login" className="btn-accent py-1.5 text-sm">
                 Começar grátis
               </Link>
             </div>
@@ -125,88 +130,93 @@ const LandingPage = () => {
 
       {/* ── Hero ───────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
-        <div className="mx-auto max-w-5xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 pt-18 pb-22 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-indigo-600 mb-3">Estudo inteligente com IA</p>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl leading-[1.15]">
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent mb-3">
+              Estudo inteligente com IA
+            </p>
+            <h1 className="font-display font-bold tracking-tight text-text text-3xl sm:text-4xl lg:text-5xl leading-[1.15]">
               Sua ementa vira um plano de estudos{' '}
-              <span className="text-indigo-600">em 60 segundos</span>
+              <span className="text-accent">em 60 segundos</span>
             </h1>
-            <p className="mt-5 text-base leading-relaxed text-gray-600 sm:text-lg">
+            <p className="mt-5 text-base leading-relaxed text-text-muted sm:text-lg">
               Envie o PDF da sua disciplina e receba um cronograma semanal personalizado
               com teoria, prática, revisão espaçada e exercícios adaptativos.
               Fundamentado em 7 teorias pedagógicas, não em achismo.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/login" className="btn-primary px-5 py-2.5 text-base">
+              <Link href="/login" className="btn-accent px-5 py-2.5 text-base">
                 Criar meu plano grátis <ArrowRight size={16} />
               </Link>
               <a href="#como-funciona" className="btn-secondary px-5 py-2.5 text-base">
                 Como funciona
               </a>
             </div>
-            <p className="mt-4 text-xs text-gray-400">
+            <p className="mt-4 text-xs text-text-subtle">
               Gratuito — até 2 planos, sem cartão de crédito.
             </p>
           </div>
         </div>
-        {/* Subtle gradient accent */}
-        <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-50 blur-3xl opacity-50 pointer-events-none" />
+        {/* Acentos decorativos: mesmo par teal/terracota da opengraph-image —
+            rima visual entre os pontos de contato (Müller-Brockmann: consistência sistêmica). */}
+        <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-teal-100 blur-3xl opacity-60 pointer-events-none" />
+        <div className="absolute top-24 -right-16 h-[280px] w-[280px] rounded-full bg-terra-100 blur-3xl opacity-50 pointer-events-none" />
       </section>
 
       {/* ── Demo: Ementa → Plano ───────────────────────────── */}
-      <section className="bg-gray-50 py-16 sm:py-20">
+      <section className="bg-surface-muted py-18 sm:py-22">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">De ementa confusa a plano claro</h2>
-            <p className="mt-2 text-sm text-gray-500">Veja a transformação que a IA faz com o conteúdo da sua disciplina.</p>
+            <h2 className="font-display font-bold text-text text-xl sm:text-2xl">De ementa confusa a plano claro</h2>
+            <p className="mt-2 text-sm text-text-muted">Veja a transformação que a IA faz com o conteúdo da sua disciplina.</p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-8 items-start">
 
             {/* Before: raw ementa */}
-            <div className="rounded-xl bg-white p-5 ring-1 ring-gray-200 shadow-sm">
+            <div className="card p-5">
               <div className="flex items-center gap-2 mb-3">
-                <BookOpen size={14} className="text-gray-400" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Ementa original</span>
+                <BookOpen size={14} className="text-text-subtle" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-text-subtle">Ementa original</span>
               </div>
-              <pre className="whitespace-pre-wrap text-sm leading-relaxed text-gray-500 font-mono bg-gray-50 rounded-lg p-4 ring-1 ring-gray-100">
+              <pre className="whitespace-pre-wrap text-sm leading-relaxed text-text-muted font-mono bg-bg rounded-lg p-4 ring-1 ring-border">
                 {MOCK_EMENTA}
               </pre>
             </div>
 
             {/* After: generated plan */}
-            <div className="rounded-xl bg-white p-5 ring-1 ring-indigo-200 shadow-sm shadow-indigo-100/50">
+            <div className="card border-primary/30 shadow-md p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={14} className="text-indigo-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-indigo-500">Plano gerado</span>
+                <Sparkles size={14} className="text-primary" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-primary">Plano gerado</span>
               </div>
 
               <div className="space-y-4">
                 {MOCK_PLAN_WEEKS.map(week => (
                   <div key={week.week}>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="flex h-5 w-5 items-center justify-center rounded bg-indigo-600 text-[10px] font-bold text-white">
+                      <span className="flex h-5 w-5 items-center justify-center rounded bg-primary text-[10px] font-bold text-on-primary">
                         {week.week}
                       </span>
-                      <span className="text-xs font-semibold text-gray-700">{week.focus}</span>
+                      <span className="text-xs font-semibold text-text">{week.focus}</span>
                     </div>
                     <ul className="space-y-1.5">
                       {week.days.map((day, i) => (
                         <li
                           key={i}
-                          className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm ring-1 ring-gray-100 ${
-                            day.done ? 'bg-gray-50 opacity-60' : 'bg-white'
-                          }`}
+                          className={cn(
+                            'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm ring-1 ring-border',
+                            day.done ? 'bg-surface-muted opacity-60' : 'bg-surface',
+                          )}
                         >
                           <CheckCircle2
                             size={14}
-                            className={day.done ? 'text-green-500 flex-shrink-0' : 'text-gray-200 flex-shrink-0'}
+                            className={day.done ? 'text-success flex-shrink-0' : 'text-border-strong flex-shrink-0'}
                           />
-                          <span className={`flex-1 truncate ${day.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                          <span className={cn('flex-1 truncate', day.done ? 'line-through text-text-subtle' : 'text-text')}>
                             {day.topic}
                           </span>
-                          <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset ${TYPE_COLORS[day.type]}`}>
+                          <span className={cn(TYPE_BADGE[day.type], 'rounded-full px-1.5 py-0.5 text-[10px]')}>
                             {TYPE_LABELS[day.type]}
                           </span>
                         </li>
@@ -221,11 +231,11 @@ const LandingPage = () => {
       </section>
 
       {/* ── Como funciona ──────────────────────────────────── */}
-      <section id="como-funciona" className="py-16 sm:py-20">
+      <section id="como-funciona" className="py-18 sm:py-22">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Como funciona</h2>
-            <p className="mt-2 text-sm text-gray-500">4 passos entre receber a ementa e começar a estudar.</p>
+            <h2 className="font-display font-bold text-text text-xl sm:text-2xl">Como funciona</h2>
+            <p className="mt-2 text-sm text-text-muted">4 passos entre receber a ementa e começar a estudar.</p>
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -233,12 +243,12 @@ const LandingPage = () => {
               const Icon = step.icon
               return (
                 <div key={i} className="text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 mb-4">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary-soft text-primary mb-4">
                     <Icon size={22} />
                   </div>
-                  <div className="text-xs font-bold text-indigo-600 mb-1">Passo {i + 1}</div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1.5">{step.title}</h3>
-                  <p className="text-sm leading-relaxed text-gray-500">{step.description}</p>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-accent mb-1">Passo {i + 1}</div>
+                  <h3 className="text-sm font-semibold text-text mb-1.5">{step.title}</h3>
+                  <p className="text-sm leading-relaxed text-text-muted">{step.description}</p>
                 </div>
               )
             })}
@@ -247,25 +257,25 @@ const LandingPage = () => {
       </section>
 
       {/* ── Features ───────────────────────────────────────── */}
-      <section className="bg-gray-50 py-16 sm:py-20">
+      <section className="bg-surface-muted py-18 sm:py-22">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Não é só um cronograma</h2>
-            <p className="mt-2 text-sm text-gray-500">Cada plano aplica princípios pedagógicos reais.</p>
+            <h2 className="font-display font-bold text-text text-xl sm:text-2xl">Não é só um cronograma</h2>
+            <p className="mt-2 text-sm text-text-muted">Cada plano aplica princípios pedagógicos reais.</p>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((feat, i) => {
               const Icon = feat.icon
               return (
-                <div key={i} className="rounded-xl bg-white p-5 ring-1 ring-gray-200 shadow-sm">
+                <div key={i} className="card p-5">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 flex-shrink-0">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary-soft text-primary flex-shrink-0">
                       <Icon size={16} />
                     </div>
-                    <h3 className="text-sm font-semibold text-gray-900">{feat.title}</h3>
+                    <h3 className="text-sm font-semibold text-text">{feat.title}</h3>
                   </div>
-                  <p className="text-sm leading-relaxed text-gray-500">{feat.description}</p>
+                  <p className="text-sm leading-relaxed text-text-muted">{feat.description}</p>
                 </div>
               )
             })}
@@ -274,10 +284,10 @@ const LandingPage = () => {
       </section>
 
       {/* ── Fundamento pedagógico ──────────────────────────── */}
-      <section className="py-16 sm:py-20">
+      <section className="py-18 sm:py-22">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-xl font-bold text-gray-900 sm:text-2xl mb-3">Fundamentado em ciência</h2>
-          <p className="text-sm leading-relaxed text-gray-500 mb-8">
+          <h2 className="font-display font-bold text-text text-xl sm:text-2xl mb-3">Fundamentado em ciência</h2>
+          <p className="text-sm leading-relaxed text-text-muted mb-8">
             Cada decisão do plano — a ordem dos tópicos, o nível dos exercícios, quando revisar, quando
             aumentar a dificuldade — vem de pesquisa pedagógica real, não de palpite.
           </p>
@@ -285,7 +295,7 @@ const LandingPage = () => {
             {FRAMEWORKS.map(f => (
               <span
                 key={f}
-                className="inline-flex items-center rounded-full bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
+                className="inline-flex items-center rounded-full bg-surface-subtle px-3 py-1.5 text-xs font-medium text-primary ring-1 ring-inset ring-teal-200"
               >
                 {f}
               </span>
@@ -295,16 +305,13 @@ const LandingPage = () => {
       </section>
 
       {/* ── Final CTA ──────────────────────────────────────── */}
-      <section className="bg-indigo-600 py-14 sm:py-16">
+      <section className="bg-primary py-18 sm:py-22">
         <div className="mx-auto max-w-3xl px-4 text-center">
-          <h2 className="text-xl font-bold text-white sm:text-2xl">Pronto para estudar melhor?</h2>
-          <p className="mt-3 text-sm text-indigo-200">
+          <h2 className="font-display font-bold text-on-primary text-xl sm:text-2xl">Pronto para estudar melhor?</h2>
+          <p className="mt-3 text-sm text-on-primary/70">
             Crie seu primeiro plano em menos de 60 segundos. Grátis, sem cartão.
           </p>
-          <Link
-            href="/login"
-            className="mt-6 inline-flex items-center gap-2 rounded-md bg-white px-6 py-2.5 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-50 transition-colors"
-          >
+          <Link href="/login" className="btn-accent mt-6 px-6 py-2.5 text-sm">
             Criar meu plano <ArrowRight size={16} />
           </Link>
         </div>

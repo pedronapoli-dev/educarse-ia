@@ -115,8 +115,8 @@ const NewPlanPage = () => {
 
       {/* Page heading */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold leading-7 text-gray-900">Criar novo plano</h1>
-        <p className="mt-1 text-sm text-gray-500">Faça upload da ementa e configure sua disponibilidade</p>
+        <h1 className="font-display text-2xl font-bold leading-tight text-text">Criar novo plano</h1>
+        <p className="mt-1 text-sm text-text-muted">Faça upload da ementa e configure sua disponibilidade</p>
       </div>
 
       {/* Steps — Tailwind "steps" block */}
@@ -128,17 +128,17 @@ const NewPlanPage = () => {
             return (
               <li key={s.key} className="flex items-center gap-x-2 flex-1 last:flex-none">
                 <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                  done    ? 'bg-indigo-600 text-white' :
-                  current ? 'ring-2 ring-indigo-600 bg-white text-indigo-600' :
-                            'bg-gray-100 text-gray-400'
+                  done    ? 'bg-primary text-on-primary' :
+                  current ? 'ring-2 ring-primary bg-surface text-primary' :
+                            'bg-surface-muted text-text-subtle'
                 }`}>
                   {done ? <Check size={12} /> : i + 1}
                 </div>
-                <span className={`hidden sm:block text-xs font-medium ${current ? 'text-gray-900' : 'text-gray-400'}`}>
+                <span className={`hidden sm:block text-xs font-medium ${current ? 'text-text' : 'text-text-subtle'}`}>
                   {s.label}
                 </span>
                 {i < STEPS.length - 1 && (
-                  <div className={`flex-1 h-px ${i < currentIdx ? 'bg-indigo-600' : 'bg-gray-200'}`} />
+                  <div className={`flex-1 h-px ${i < currentIdx ? 'bg-primary' : 'bg-border'}`} />
                 )}
               </li>
             )
@@ -148,9 +148,9 @@ const NewPlanPage = () => {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-md bg-red-50 p-3.5 ring-1 ring-inset ring-red-200">
-          <AlertCircle className="mt-px flex-shrink-0 text-red-500" size={15} />
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="mb-6 flex items-start gap-2.5 rounded-md bg-danger-soft p-3.5 ring-1 ring-inset ring-danger/20">
+          <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
+          <p className="text-sm text-on-danger-soft">{error}</p>
         </div>
       )}
 
@@ -159,29 +159,29 @@ const NewPlanPage = () => {
         <div
           {...getRootProps()}
           className={`flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-14 text-center transition-colors ${
-            isDragActive ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300 bg-white hover:border-indigo-300'
+            isDragActive ? 'border-primary/40 bg-primary-soft' : 'border-border-strong bg-surface hover:border-primary/30'
           } ${isLoading ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}
         >
           <input {...getInputProps()} />
 
           {isLoading ? (
             <>
-              <Loader2 className="animate-spin text-indigo-600 mb-3" size={32} />
-              <p className="text-sm font-medium text-gray-700">Processando ementa com IA...</p>
-              <p className="mt-1 text-xs text-gray-400">Extraindo tópicos do PDF</p>
+              <Loader2 className="animate-spin text-primary mb-3" size={32} />
+              <p className="text-sm font-medium text-text">Processando ementa com IA...</p>
+              <p className="mt-1 text-xs text-text-subtle">Extraindo tópicos do PDF</p>
             </>
           ) : (
             <>
-              <div className={`mb-4 rounded-full p-3 ${isDragActive ? 'bg-indigo-100' : 'bg-gray-100'}`}>
-                <Upload className={isDragActive ? 'text-indigo-600' : 'text-gray-400'} size={24} />
+              <div className={`mb-4 rounded-full p-3 ${isDragActive ? 'bg-primary-soft' : 'bg-surface-muted'}`}>
+                <Upload className={isDragActive ? 'text-primary' : 'text-text-subtle'} size={24} />
               </div>
-              <p className="text-sm font-semibold text-gray-700">
+              <p className="text-sm font-semibold text-text">
                 {isDragActive ? 'Solte o arquivo aqui' : 'Arraste o PDF da ementa'}
               </p>
-              <p className="mt-1 text-sm text-gray-500">
-                ou <span className="font-medium text-indigo-600">clique para selecionar</span>
+              <p className="mt-1 text-sm text-text-muted">
+                ou <span className="font-medium text-primary">clique para selecionar</span>
               </p>
-              <p className="mt-3 text-xs text-gray-400">PDF até 10 MB</p>
+              <p className="mt-3 text-xs text-text-subtle">PDF até 10 MB</p>
             </>
           )}
         </div>
@@ -190,24 +190,24 @@ const NewPlanPage = () => {
       {/* ── Step: Confirm ── */}
       {step === 'confirm' && subject && (
         <div className="space-y-4">
-          <div className="card divide-y divide-gray-100">
+          <div className="card divide-y divide-border">
 
             {/* Subject header */}
             <div className="flex items-start gap-3 px-5 py-4">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-indigo-50">
-                <FileText className="text-indigo-600" size={16} />
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-primary-soft">
+                <FileText className="text-primary" size={16} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-900">{subject.name}</p>
+                <p className="text-sm font-semibold text-text">{subject.name}</p>
                 {subject.workload_hours && (
-                  <p className="text-xs text-gray-400 mt-0.5">{subject.workload_hours}h · {subject.topics.length} tópicos</p>
+                  <p className="text-xs text-text-subtle mt-0.5">{subject.workload_hours}h · {subject.topics.length} tópicos</p>
                 )}
               </div>
             </div>
 
             {/* Metadata fields */}
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-subtle mb-3">
                 Complete os dados não encontrados no PDF
               </p>
               <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -226,7 +226,7 @@ const NewPlanPage = () => {
                         value={meta[key]}
                         onChange={e => setMeta(m => ({ ...m, [key]: e.target.value }))}
                         placeholder="Não identificado"
-                        className={!meta[key] ? '!ring-amber-300 !bg-amber-50 placeholder:!text-amber-400' : ''}
+                        className={!meta[key] ? '!ring-2 !ring-warning/40 !bg-warning-soft placeholder:!text-warning/70' : ''}
                       />
                     </div>
                   </div>
@@ -236,18 +236,18 @@ const NewPlanPage = () => {
 
             {/* Topics */}
             <div className="px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Tópicos</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-subtle mb-3">Tópicos</p>
               <ul role="list" className="space-y-2">
                 {subject.topics.slice(0, 5).map((t, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm text-gray-600">
-                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-gray-100 text-[10px] font-bold text-gray-500">
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-text-muted">
+                    <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-surface-muted text-[10px] font-bold text-text-subtle">
                       {i + 1}
                     </span>
                     <span className="leading-snug">{t}</span>
                   </li>
                 ))}
                 {subject.topics.length > 5 && (
-                  <li className="text-xs text-gray-400 pl-7">+ {subject.topics.length - 5} tópicos</li>
+                  <li className="text-xs text-text-subtle pl-7">+ {subject.topics.length - 5} tópicos</li>
                 )}
               </ul>
             </div>
@@ -291,27 +291,27 @@ const NewPlanPage = () => {
       {/* ── Step: Profile ── */}
       {step === 'profile' && (
         <div>
-          <div className="card divide-y divide-gray-100">
+          <div className="card divide-y divide-border">
 
             {/* Prior knowledge slider */}
             <div className="px-5 py-5">
               <div className="flex items-center justify-between mb-1">
-                <label className="!text-sm !font-semibold">Conhecimento previo na materia</label>
-                <span className="badge-indigo tabular-nums">{priorKnowledge}/10</span>
+                <label className="font-semibold">Conhecimento previo na materia</label>
+                <span className="badge-primary tabular-nums">{priorKnowledge}/10</span>
               </div>
-              <p className="text-xs text-gray-400 mb-3">{KNOWLEDGE_LABELS[priorKnowledge]}</p>
+              <p className="text-xs text-text-subtle mb-3">{KNOWLEDGE_LABELS[priorKnowledge]}</p>
               <input
                 type="range" min={0} max={10} step={1} value={priorKnowledge}
                 onChange={e => setPriorKnowledge(Number(e.target.value))}
               />
-              <div className="mt-2 flex justify-between text-xs text-gray-400">
+              <div className="mt-2 flex justify-between text-xs text-text-subtle">
                 <span>Nunca vi</span><span>Domino</span>
               </div>
             </div>
 
             {/* Learning formats */}
             <div className="px-5 py-5">
-              <label className="!text-sm !font-semibold mb-3 block">Como voce prefere estudar?</label>
+              <label className="font-semibold mb-3 block">Como voce prefere estudar?</label>
               <div className="flex flex-wrap gap-2">
                 {FORMAT_OPTIONS.map(({ value, label }) => {
                   const selected = learningFormats.includes(value)
@@ -324,8 +324,8 @@ const NewPlanPage = () => {
                       )}
                       className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                         selected
-                          ? 'bg-indigo-600 text-white ring-2 ring-indigo-600 ring-offset-1'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-primary text-on-primary ring-2 ring-primary ring-offset-1'
+                          : 'bg-surface-muted text-text-muted hover:bg-border'
                       }`}
                     >
                       {label}
@@ -337,11 +337,11 @@ const NewPlanPage = () => {
 
             {/* Application context (Freire) */}
             <div className="px-5 py-5">
-              <label htmlFor="app-context" className="!text-sm !font-semibold">
+              <label htmlFor="app-context" className="font-semibold">
                 Por que voce precisa aprender isso?
               </label>
-              <p className="text-xs text-gray-400 mt-0.5 mb-2">
-                Ex: "Preciso passar na prova de Calculo II" ou "Quero aplicar no meu TCC"
+              <p className="text-xs text-text-subtle mt-0.5 mb-2">
+                Ex: &quot;Preciso passar na prova de Calculo II&quot; ou &quot;Quero aplicar no meu TCC&quot;
               </p>
               <textarea
                 id="app-context"
@@ -349,17 +349,17 @@ const NewPlanPage = () => {
                 value={applicationContext}
                 onChange={e => setApplicationContext(e.target.value)}
                 placeholder="Seu objetivo real com essa materia..."
-                className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                className="mt-1.5"
               />
             </div>
 
             {/* Previous blocks */}
             <div className="px-5 py-5">
-              <label htmlFor="prev-blocks" className="!text-sm !font-semibold">
-                Topicos que te travaram antes <span className="font-normal text-gray-400">(opcional)</span>
+              <label htmlFor="prev-blocks" className="font-semibold">
+                Topicos que te travaram antes <span className="font-normal text-text-subtle">(opcional)</span>
               </label>
-              <p className="text-xs text-gray-400 mt-0.5 mb-2">
-                Separados por virgula. Ex: "Integrais, Limites"
+              <p className="text-xs text-text-subtle mt-0.5 mb-2">
+                Separados por virgula. Ex: &quot;Integrais, Limites&quot;
               </p>
               <input
                 id="prev-blocks"
@@ -389,19 +389,19 @@ const NewPlanPage = () => {
       {/* ── Step: Configure ── */}
       {step === 'configure' && (
         <div>
-          <div className="card divide-y divide-gray-100">
+          <div className="card divide-y divide-border">
 
             {/* Hours per day */}
             <div className="px-5 py-5">
               <div className="flex items-center justify-between mb-3">
-                <label className="!text-sm !font-semibold">Horas de estudo por dia</label>
-                <span className="badge-indigo tabular-nums">{hoursPerDay}h</span>
+                <label className="font-semibold">Horas de estudo por dia</label>
+                <span className="badge-primary tabular-nums">{hoursPerDay}h</span>
               </div>
               <input
                 type="range" min={0.5} max={8} step={0.5} value={hoursPerDay}
                 onChange={e => setHoursPerDay(Number(e.target.value))}
               />
-              <div className="mt-2 flex justify-between text-xs text-gray-400">
+              <div className="mt-2 flex justify-between text-xs text-text-subtle">
                 <span>30 min</span><span>8 horas</span>
               </div>
             </div>
@@ -409,8 +409,8 @@ const NewPlanPage = () => {
             {/* Days per week */}
             <div className="px-5 py-5">
               <div className="flex items-center justify-between mb-3">
-                <label className="!text-sm !font-semibold">Dias por semana</label>
-                <span className="badge-indigo tabular-nums">{daysPerWeek}×</span>
+                <label className="font-semibold">Dias por semana</label>
+                <span className="badge-primary tabular-nums">{daysPerWeek}×</span>
               </div>
               <div className="grid grid-cols-7 gap-1.5">
                 {['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map((lbl, i) => {
@@ -422,12 +422,12 @@ const NewPlanPage = () => {
                       type="button"
                       onClick={() => setDaysPerWeek(val)}
                       className={`flex flex-col items-center rounded-md py-2.5 text-xs font-bold transition-colors ${
-                        sel ? 'bg-indigo-600 text-white ring-2 ring-indigo-600 ring-offset-1'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        sel ? 'bg-primary text-on-primary ring-2 ring-primary ring-offset-1'
+                            : 'bg-surface-muted text-text-muted hover:bg-border'
                       }`}
                     >
                       <span className="text-sm">{val}</span>
-                      <span className={`mt-0.5 text-[9px] font-medium ${sel ? 'text-indigo-200' : 'text-gray-400'}`}>{lbl}</span>
+                      <span className={`mt-0.5 text-[9px] font-medium ${sel ? 'text-on-primary/70' : 'text-text-subtle'}`}>{lbl}</span>
                     </button>
                   )
                 })}
@@ -437,7 +437,7 @@ const NewPlanPage = () => {
             {/* Exam date */}
             <div className="px-5 py-5">
               <label htmlFor="exam-date">
-                Data da prova <span className="font-normal text-gray-400">(opcional)</span>
+                Data da prova <span className="font-normal text-text-subtle">(opcional)</span>
               </label>
               <div className="mt-1.5">
                 <input
@@ -462,9 +462,9 @@ const NewPlanPage = () => {
       {/* ── Step: Generating ── */}
       {step === 'generating' && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Loader2 className="animate-spin text-indigo-600 mb-4" size={36} />
-          <h2 className="text-base font-semibold text-gray-900">Gerando seu plano...</h2>
-          <p className="mt-2 text-sm text-gray-500 max-w-xs">
+          <Loader2 className="animate-spin text-primary mb-4" size={36} />
+          <h2 className="text-base font-semibold text-text">Gerando seu plano...</h2>
+          <p className="mt-2 text-sm text-text-muted max-w-xs">
             A IA está criando um cronograma personalizado. Isso leva cerca de 20–30 segundos.
           </p>
         </div>

@@ -72,7 +72,7 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />)
 
-    expect(await screen.findByText('Nenhum plano criado')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum plano ainda')).toBeInTheDocument()
   })
 
   it('renderiza estatísticas e lista de planos quando há planos', async () => {

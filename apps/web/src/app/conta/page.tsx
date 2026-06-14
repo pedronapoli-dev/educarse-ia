@@ -29,7 +29,7 @@ const ContaPage = () => {
   if (state === 'loading') {
     return (
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center py-16 text-gray-400">
+        <div className="flex items-center justify-center py-16 text-text-subtle">
           <Loader2 size={20} className="animate-spin" />
         </div>
       </main>
@@ -39,9 +39,9 @@ const ContaPage = () => {
   if (state === 'error' || !user) {
     return (
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex items-start gap-2.5 rounded-md bg-red-50 p-3.5 ring-1 ring-inset ring-red-200">
-          <AlertCircle className="mt-px flex-shrink-0 text-red-500" size={15} />
-          <p className="text-sm text-red-700">Não foi possível carregar os dados da sua conta.</p>
+        <div className="flex items-start gap-2.5 rounded-md bg-danger-soft p-3.5 ring-1 ring-inset ring-danger/20">
+          <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
+          <p className="text-sm text-on-danger-soft">Não foi possível carregar os dados da sua conta.</p>
         </div>
       </main>
     )
@@ -56,8 +56,8 @@ const ContaPage = () => {
     <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold leading-7 text-gray-900">Minha Conta</h1>
-          <p className="mt-1 text-sm text-gray-500">Seu perfil, plano e dados</p>
+          <h1 className="font-display text-2xl font-bold leading-tight text-text">Minha Conta</h1>
+          <p className="mt-1 text-sm text-text-muted">Seu perfil, plano e dados</p>
         </div>
       </div>
 
@@ -65,34 +65,34 @@ const ContaPage = () => {
 
         {/* Perfil */}
         <section className="card px-4 py-5 sm:p-6">
-          <h2 className="text-sm font-semibold text-gray-900">Perfil</h2>
+          <h2 className="text-sm font-semibold text-text">Perfil</h2>
           <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-medium text-gray-500">Email</dt>
-              <dd className="mt-1 text-sm text-gray-900">{user.email}</dd>
+              <dt className="text-xs font-medium text-text-muted">Email</dt>
+              <dd className="mt-1 text-sm text-text">{user.email}</dd>
             </div>
             {user.full_name && (
               <div>
-                <dt className="text-xs font-medium text-gray-500">Nome</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user.full_name}</dd>
+                <dt className="text-xs font-medium text-text-muted">Nome</dt>
+                <dd className="mt-1 text-sm text-text">{user.full_name}</dd>
               </div>
             )}
             {user.university && (
               <div>
-                <dt className="text-xs font-medium text-gray-500">Universidade</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user.university}</dd>
+                <dt className="text-xs font-medium text-text-muted">Universidade</dt>
+                <dd className="mt-1 text-sm text-text">{user.university}</dd>
               </div>
             )}
             {user.course && (
               <div>
-                <dt className="text-xs font-medium text-gray-500">Curso</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user.course}</dd>
+                <dt className="text-xs font-medium text-text-muted">Curso</dt>
+                <dd className="mt-1 text-sm text-text">{user.course}</dd>
               </div>
             )}
             {user.semester != null && (
               <div>
-                <dt className="text-xs font-medium text-gray-500">Semestre</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user.semester}</dd>
+                <dt className="text-xs font-medium text-text-muted">Semestre</dt>
+                <dd className="mt-1 text-sm text-text">{user.semester}</dd>
               </div>
             )}
           </dl>
@@ -101,20 +101,20 @@ const ContaPage = () => {
         {/* Plano e uso */}
         <section className="card px-4 py-5 sm:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">Plano</h2>
-            <span className="badge-indigo">{PLAN_LABELS[user.plan]}</span>
+            <h2 className="text-sm font-semibold text-text">Plano</h2>
+            <span className="badge-primary">{PLAN_LABELS[user.plan]}</span>
           </div>
 
           <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-medium text-gray-500">Planos de estudo</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-xs font-medium text-text-muted">Planos de estudo</dt>
+              <dd className="mt-1 text-sm text-text">
                 {limits.maxPlans === null ? 'Ilimitado' : `Até ${limits.maxPlans}`}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-gray-500">Gerações de IA por mês</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-xs font-medium text-text-muted">Gerações de IA por mês</dt>
+              <dd className="mt-1 text-sm text-text">
                 {limits.maxApiCallsPerMonth === null ? 'Ilimitado' : `${limits.maxApiCallsPerMonth} por mês`}
               </dd>
             </div>
@@ -122,11 +122,11 @@ const ContaPage = () => {
 
           {limits.maxApiCallsPerMonth !== null && (
             <div className="mt-4">
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-text-muted">
                 <span>Uso este mês</span>
                 <span>{user.api_calls_this_month} / {limits.maxApiCallsPerMonth}</span>
               </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
                 <div className={`h-full ${getProgressBarColor(100 - usedPct)}`} style={{ width: `${usedPct}%` }} />
               </div>
             </div>
@@ -142,8 +142,8 @@ const ContaPage = () => {
         {/* Comunidade */}
         {process.env.NEXT_PUBLIC_DISCORD_INVITE_URL && (
           <section className="card px-4 py-5 sm:p-6">
-            <h2 className="text-sm font-semibold text-gray-900">Comunidade</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <h2 className="text-sm font-semibold text-text">Comunidade</h2>
+            <p className="mt-1 text-sm text-text-muted">
               Entre no nosso Discord para trocar ideias com outros estudantes, dar sugestões e
               acompanhar novidades de primeira mão.
             </p>
@@ -156,14 +156,14 @@ const ContaPage = () => {
         )}
 
         {/* Zona de risco */}
-        <section className="card px-4 py-5 sm:p-6 ring-red-100">
-          <h2 className="text-sm font-semibold text-gray-900">Zona de risco</h2>
-          <p className="mt-1 text-sm text-gray-500">
+        <section className="card px-4 py-5 sm:p-6 ring-1 ring-danger/20">
+          <h2 className="text-sm font-semibold text-text">Zona de risco</h2>
+          <p className="mt-1 text-sm text-text-muted">
             Excluir sua conta remove permanentemente seus planos, disciplinas, exercícios e dados de
             progresso, e cancela qualquer assinatura ativa.
           </p>
           <div className="mt-4">
-            <button onClick={() => setShowDeleteModal(true)} className="btn bg-red-50 text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-100">
+            <button onClick={() => setShowDeleteModal(true)} className="btn bg-danger-soft text-on-danger-soft ring-1 ring-inset ring-danger/20 hover:bg-danger/15">
               Excluir conta
             </button>
           </div>

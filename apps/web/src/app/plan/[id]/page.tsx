@@ -59,10 +59,10 @@ const PlanPage = () => {
 
   if (state === 'loading') return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Loader2 className="animate-spin text-indigo-600" size={24} />
+      <Loader2 className="animate-spin text-primary" size={24} />
     </div>
   )
-  if (!plan) return <p className="p-8 text-gray-400">Plano não encontrado.</p>
+  if (!plan) return <p className="p-8 text-text-subtle">Plano não encontrado.</p>
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -70,38 +70,38 @@ const PlanPage = () => {
       {/* Back */}
       <button
         onClick={() => router.push('/dashboard')}
-        className="mb-6 flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+        className="mb-6 flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text transition-colors"
       >
         <ArrowLeft size={14} /> Meus planos
       </button>
 
       {/* Page heading */}
-      <div className="border-b border-gray-200 pb-5 mb-5 flex flex-wrap items-start justify-between gap-4">
+      <div className="border-b border-border pb-5 mb-5 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold leading-7 text-gray-900">{plan.title}</h1>
+          <h1 className="font-display text-2xl font-bold leading-tight text-text">{plan.title}</h1>
           {plan.subjects && (
-            <p className="mt-0.5 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-text-muted">
               {plan.subjects.name}
-              {plan.subjects.course && <span className="text-gray-400"> · {plan.subjects.course}</span>}
+              {plan.subjects.course && <span className="text-text-subtle"> · {plan.subjects.course}</span>}
             </p>
           )}
         </div>
         <div className="flex-shrink-0 text-right">
-          <p className="text-3xl font-semibold tracking-tight text-indigo-600 tabular-nums leading-none">
-            {plan.progress}<span className="text-base font-medium text-gray-400">%</span>
+          <p className="text-3xl font-semibold tracking-tight text-primary tabular-nums leading-none">
+            {plan.progress}<span className="text-base font-medium text-text-subtle">%</span>
           </p>
-          <p className="mt-1 text-xs text-gray-400">{completedDays}/{totalDays} dias</p>
+          <p className="mt-1 text-xs text-text-subtle">{completedDays}/{totalDays} dias</p>
         </div>
       </div>
 
       {plan.schedule.length === 0 ? (
         /* Empty schedule state */
         <div className="text-center py-16">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50">
-            <CalendarX className="text-indigo-600" size={22} />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft">
+            <CalendarX className="text-primary" size={22} />
           </div>
-          <h3 className="text-sm font-semibold text-gray-900">Nenhuma semana de estudos ainda</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="text-sm font-semibold text-text">Nenhuma semana de estudos ainda</h3>
+          <p className="mt-1 text-sm text-text-muted">
             Este plano ainda não tem um cronograma gerado. Volte para o painel para criar ou revisar seus planos.
           </p>
           <div className="mt-6">
@@ -113,7 +113,7 @@ const PlanPage = () => {
       ) : (
         <>
           {/* Progress bar */}
-          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-gray-100">
+          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-surface-muted">
             <div
               className={`h-1.5 rounded-full transition-all duration-700 ${barColor}`}
               style={{ width: `${plan.progress}%` }}
@@ -135,9 +135,9 @@ const PlanPage = () => {
                   key={`${week.week}-${index}`}
                   onClick={() => setActiveWeek(week.week)}
                   className={`flex-shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-                    current ? 'bg-indigo-600 text-white'
-                    : done   ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    :          'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    current ? 'bg-primary text-on-primary'
+                    : done   ? 'bg-success-soft text-on-success-soft hover:bg-success/15'
+                    :          'text-text-muted hover:bg-surface-muted hover:text-text'
                   }`}
                 >
                   Sem. {week.week}{done ? ' ✓' : ''}
@@ -151,13 +151,13 @@ const PlanPage = () => {
           {currentWeek && (
             <div>
               {/* Week focus banner */}
-              <div className="mb-4 rounded-md bg-indigo-50 px-4 py-2.5 ring-1 ring-inset ring-indigo-100">
-                <p className="text-xs font-semibold text-indigo-700">
+              <div className="mb-4 rounded-md bg-primary-soft px-4 py-2.5 ring-1 ring-inset ring-primary/10">
+                <p className="text-xs font-semibold text-on-primary-soft">
                   {currentWeek.module
-                    ? <><span className="text-indigo-400">{currentWeek.module}</span> · </>
+                    ? <><span className="text-on-primary-soft/60">{currentWeek.module}</span> · </>
                     : null
                   }
-                  Semana {currentWeek.week} · <span className="font-normal text-indigo-500">{currentWeek.focus}</span>
+                  Semana {currentWeek.week} · <span className="font-normal text-on-primary-soft/70">{currentWeek.focus}</span>
                 </p>
               </div>
 
@@ -180,7 +180,7 @@ const PlanPage = () => {
               <CheckinCard plan={plan} activeWeek={activeWeek} />
               <button
                 onClick={() => setShowRecalibrate(true)}
-                className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 text-sm font-medium text-amber-600 transition-colors hover:bg-amber-50 hover:border-amber-400"
+                className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-warning/30 bg-warning-soft/50 px-4 py-3 text-sm font-medium text-warning transition-colors hover:bg-warning-soft hover:border-warning/50"
               >
                 <AlertTriangle size={14} /> Estou travado
               </button>

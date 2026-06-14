@@ -29,7 +29,7 @@ export const ExerciseModal = ({ planId, subjectName, day, progress = 0, onClose 
   const [limitError, setLimitError] = useState<LimitedResponse | null>(null)
 
   useEffect(() => {
-    if (!day) { setExercises([]); setGenError(null); setLimitError(null); return }
+    if (!day) return
     setLoading(true)
     setExercises([])
     setGenError(null)
@@ -76,30 +76,30 @@ export const ExerciseModal = ({ planId, subjectName, day, progress = 0, onClose 
 
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-gray-500/75 transition-opacity"
+        className="absolute inset-0 bg-text/50 transition-opacity"
         onClick={onClose}
       />
 
       {/* Panel */}
-      <div className="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:my-8 sm:max-w-2xl sm:max-h-[80vh] sm:rounded-lg">
+      <div className="relative flex w-full max-h-[90vh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:my-8 sm:max-w-2xl sm:max-h-[80vh] sm:rounded-xl">
 
         {/* Drag handle (mobile only) */}
         <div className="flex justify-center pb-1 pt-3 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-gray-200" />
+          <div className="h-1 w-10 rounded-full bg-border-strong" />
         </div>
 
         {/* Header */}
-        <div className="flex flex-shrink-0 items-start justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-border px-5 py-4">
           <div className="min-w-0 flex-1 pr-4">
             <div className="mb-0.5 flex items-center gap-2">
-              <p className="text-xs font-semibold uppercase tracking-widest text-indigo-600">Exercícios</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-accent">Exercícios</p>
               {day.bloom_level && <BloomBadge level={day.bloom_level} />}
             </div>
-            <h2 className="font-semibold leading-snug text-gray-900">{day.topic}</h2>
+            <h2 className="font-semibold leading-snug text-text">{day.topic}</h2>
           </div>
           <button
             onClick={onClose}
-            className="flex-shrink-0 rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            className="flex-shrink-0 rounded-md p-1.5 text-text-subtle transition-colors hover:bg-surface-muted hover:text-text-muted"
             aria-label="Fechar"
           >
             <X size={18} />
@@ -108,9 +108,9 @@ export const ExerciseModal = ({ planId, subjectName, day, progress = 0, onClose 
 
         {/* Mastery criteria banner */}
         {day.mastery_criteria && (
-          <div className="flex-shrink-0 border-b border-amber-100 bg-amber-50 px-5 py-3">
-            <p className="text-xs font-semibold text-amber-700">Critério de maestria</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-amber-600">{day.mastery_criteria}</p>
+          <div className="flex-shrink-0 border-b border-warning-border bg-warning-soft px-5 py-3">
+            <p className="text-xs font-semibold text-on-warning-soft">Critério de maestria</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-on-warning-soft">{day.mastery_criteria}</p>
           </div>
         )}
 
@@ -118,15 +118,15 @@ export const ExerciseModal = ({ planId, subjectName, day, progress = 0, onClose 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16">
-              <Loader2 className="animate-spin text-indigo-600" size={32} />
-              <p className="text-sm text-gray-400">Gerando exercícios com IA...</p>
+              <Loader2 className="animate-spin text-primary" size={32} />
+              <p className="text-sm text-text-subtle">Gerando exercícios com IA...</p>
             </div>
           ) : limitError ? (
             <LimitReachedBlock limitError={limitError} context="modal" />
           ) : genError ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <AlertCircle className="text-red-400" size={28} />
-              <p className="text-sm text-gray-500">{genError}</p>
+              <AlertCircle className="text-danger" size={28} />
+              <p className="text-sm text-text-muted">{genError}</p>
             </div>
           ) : (
             exercises.map((ex, i) => <ExerciseCard key={ex.id} exercise={ex} index={i} />)
@@ -151,28 +151,28 @@ const ExerciseCard = ({ exercise, index }: { exercise: Exercise; index: number }
   const [hintOpen, setHintOpen] = useState(false)
 
   return (
-    <div className="rounded-lg bg-gray-50 p-5 ring-1 ring-gray-200">
+    <div className="rounded-lg border border-border bg-surface-muted p-5">
 
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <span className="text-xs font-semibold uppercase tracking-wide text-text-subtle">
           Questão {index + 1}
         </span>
-        <span className="badge-indigo">{EXERCISE_TYPE_LABELS[exercise.type] ?? exercise.type}</span>
+        <span className="badge-accent">{EXERCISE_TYPE_LABELS[exercise.type] ?? exercise.type}</span>
       </div>
 
-      <p className="mb-4 font-medium leading-relaxed text-gray-800">{exercise.question}</p>
+      <p className="mb-4 font-medium leading-relaxed text-text">{exercise.question}</p>
 
       {/* Scaffolded hint — shown before answering */}
       {!revealed && exercise.scaffolded_hint && (
         <div className="mb-3">
           <button
             onClick={() => setHintOpen(!hintOpen)}
-            className="text-xs font-medium text-indigo-500 transition-colors hover:text-indigo-700"
+            className="text-xs font-medium text-primary transition-colors hover:text-primary-hover"
           >
             {hintOpen ? 'Esconder dica' : 'Precisa de uma dica?'}
           </button>
           {hintOpen && (
-            <p className="mt-1.5 rounded-md border border-indigo-100 bg-indigo-50/50 px-3 py-2 text-sm text-indigo-700">
+            <p className="mt-1.5 rounded-md border border-primary/20 bg-primary-soft/50 px-3 py-2 text-sm text-on-primary-soft">
               {exercise.scaffolded_hint}
             </p>
           )}
@@ -186,11 +186,11 @@ const ExerciseCard = ({ exercise, index }: { exercise: Exercise; index: number }
             const isWrong    = revealed && opt.key === selected && opt.key !== exercise.answer
             const isSelected = !revealed && opt.key === selected
 
-            let cls = 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:bg-indigo-50/40 cursor-pointer'
-            if (isCorrect)  cls = 'border-green-400 bg-green-50 text-green-800 cursor-default'
-            if (isWrong)    cls = 'border-red-300 bg-red-50 text-red-700 cursor-default'
-            if (isSelected) cls = 'border-indigo-400 bg-indigo-50 text-indigo-700 cursor-pointer'
-            if (revealed && !isCorrect && !isWrong) cls = 'border-gray-100 bg-white text-gray-400 cursor-default'
+            let cls = 'border-border bg-surface text-text hover:border-primary/30 hover:bg-primary-soft/40 cursor-pointer'
+            if (isCorrect)  cls = 'border-success/40 bg-success-soft text-on-success-soft cursor-default'
+            if (isWrong)    cls = 'border-danger/30 bg-danger-soft text-on-danger-soft cursor-default'
+            if (isSelected) cls = 'border-primary/40 bg-primary-soft text-on-primary-soft cursor-pointer'
+            if (revealed && !isCorrect && !isWrong) cls = 'border-border bg-surface text-text-subtle cursor-default'
 
             return (
               <button
@@ -201,25 +201,24 @@ const ExerciseCard = ({ exercise, index }: { exercise: Exercise; index: number }
               >
                 <span className="w-5 flex-shrink-0 text-xs font-bold">{opt.key.toUpperCase()}</span>
                 <span className="flex-1 leading-snug">{opt.text}</span>
-                {isCorrect && <CheckCircle2 size={16} className="flex-shrink-0 text-green-500" />}
-                {isWrong   && <XCircle     size={16} className="flex-shrink-0 text-red-400"   />}
+                {isCorrect && <CheckCircle2 size={16} className="flex-shrink-0 text-success" />}
+                {isWrong   && <XCircle     size={16} className="flex-shrink-0 text-danger"  />}
               </button>
             )
           })}
         </div>
       ) : (
-        <p className="text-sm italic text-gray-500">
+        <p className="text-sm italic text-text-muted">
           Questão aberta para reflexão — não há alternativas.
         </p>
       )}
 
       {revealed && exercise.explanation && (
-        <div className="mt-4 rounded-md border border-gray-100 bg-white p-4 text-sm leading-relaxed text-gray-600">
-          <span className="font-semibold text-gray-700">Explicação: </span>
+        <div className="mt-4 rounded-md border border-border bg-surface p-4 text-sm leading-relaxed text-text-muted">
+          <span className="font-semibold text-text">Explicação: </span>
           {exercise.explanation}
         </div>
       )}
     </div>
   )
 }
-

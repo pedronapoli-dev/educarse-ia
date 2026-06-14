@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
-import { AlertCircle, Loader2, GraduationCap, KeyRound } from 'lucide-react'
+import { BrandMark } from '@/components/BrandMark'
+import { AlertCircle, Loader2, KeyRound } from 'lucide-react'
 
 type Status = 'checking' | 'ready' | 'invalid'
 
@@ -48,22 +49,20 @@ const ResetPasswordPage = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-gray-50 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-bg py-12 sm:px-6 lg:px-8">
 
       {/* Logo */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600">
-            <GraduationCap className="text-white" size={20} />
-          </div>
+          <BrandMark className="h-10 w-10 rounded-xl text-lg" />
         </div>
       </div>
 
       {status === 'invalid' ? (
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white px-6 py-8 shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg sm:px-10 text-center">
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Link inválido ou expirado</h2>
-            <p className="text-sm text-gray-500 leading-relaxed">
+          <div className="card px-6 py-8 sm:px-10 text-center">
+            <h2 className="text-lg font-bold text-text mb-2">Link inválido ou expirado</h2>
+            <p className="text-sm text-text-muted leading-relaxed">
               Solicite um novo link de redefinição de senha na tela de login.
             </p>
             <Link href="/login" className="mt-6 inline-flex btn-primary w-full py-2 justify-center">
@@ -73,21 +72,21 @@ const ResetPasswordPage = () => {
         </div>
       ) : (
         <>
-          <h2 className="mt-4 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+          <h2 className="mt-4 text-center font-display text-2xl font-bold leading-tight tracking-tight text-text">
             Criar nova senha
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-500">
+          <p className="mt-2 text-center text-sm text-text-muted">
             Escolha uma nova senha para sua conta
           </p>
 
           <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <div className="bg-white px-6 py-8 shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg sm:px-10">
+            <div className="card px-6 py-8 sm:px-10">
               <form onSubmit={handleSubmit} className="space-y-5">
 
                 {error && (
-                  <div className="flex items-start gap-2.5 rounded-md bg-red-50 p-3.5 ring-1 ring-inset ring-red-200">
-                    <AlertCircle className="mt-px flex-shrink-0 text-red-500" size={15} />
-                    <p className="text-sm text-red-700">{error}</p>
+                  <div className="flex items-start gap-2.5 rounded-md bg-danger-soft p-3.5 ring-1 ring-inset ring-danger/20">
+                    <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
+                    <p className="text-sm text-on-danger-soft">{error}</p>
                   </div>
                 )}
 
