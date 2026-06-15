@@ -159,8 +159,8 @@ const LandingPage = () => {
         </div>
         {/* Acentos decorativos: mesmo par teal/terracota da opengraph-image —
             rima visual entre os pontos de contato (Müller-Brockmann: consistência sistêmica). */}
-        <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-teal-100 blur-3xl opacity-60 pointer-events-none" />
-        <div className="absolute top-24 -right-16 h-[280px] w-[280px] rounded-full bg-terra-100 blur-3xl opacity-50 pointer-events-none" />
+        <div className="absolute -top-20 -right-20 h-[250px] w-[250px] sm:-top-40 sm:-right-40 sm:h-[500px] sm:w-[500px] rounded-full bg-teal-100 blur-3xl opacity-60 pointer-events-none" />
+        <div className="absolute top-12 -right-8 h-[140px] w-[140px] sm:top-24 sm:-right-16 sm:h-[280px] sm:w-[280px] rounded-full bg-terra-100 blur-3xl opacity-50 pointer-events-none" />
       </section>
 
       {/* ── Demo: Ementa → Plano ───────────────────────────── */}
