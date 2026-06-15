@@ -60,7 +60,7 @@ const LoginPage = () => {
   // ── Tela de confirmação de e-mail ──────────────────────────
   if (mode === 'confirm') {
     return (
-      <div className="flex min-h-screen flex-col justify-center bg-bg py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen flex-col justify-center bg-bg px-4 py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <BrandMark className="h-10 w-10 rounded-xl" />
@@ -94,7 +94,7 @@ const LoginPage = () => {
   // ── Tela de confirmação de envio do link de redefinição ────
   if (mode === 'forgot-sent') {
     return (
-      <div className="flex min-h-screen flex-col justify-center bg-bg py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen flex-col justify-center bg-bg px-4 py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
             <BrandMark className="h-10 w-10 rounded-xl" />
@@ -129,7 +129,7 @@ const LoginPage = () => {
   // ── Formulário de login / cadastro ─────────────────────────
   return (
     <div className="flex min-h-screen flex-col bg-bg">
-      <div className="flex flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:px-8">
 
         {/* Logo + heading */}
         <div className="sm:mx-auto sm:w-full sm:max-w-md">

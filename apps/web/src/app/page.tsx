@@ -114,7 +114,7 @@ const LandingPage = () => {
               </span>
             </Link>
             <div className="flex items-center gap-3">
-              <Link href="/planos" className="text-sm font-medium text-text-muted hover:text-text transition-colors duration-fast ease-standard">
+              <Link href="/planos" className="hidden sm:inline-block text-sm font-medium text-text-muted hover:text-text transition-colors duration-fast ease-standard">
                 Planos
               </Link>
               <Link href="/login" className="text-sm font-medium text-text-muted hover:text-text transition-colors duration-fast ease-standard">

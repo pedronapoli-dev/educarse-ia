@@ -407,7 +407,7 @@ const NewPlanPage = () => {
             </div>
 
             {/* Days per week */}
-            <div className="px-5 py-5">
+            <div className="px-3 py-5 sm:px-5">
               <div className="flex items-center justify-between mb-3">
                 <label className="font-semibold">Dias por semana</label>
                 <span className="badge-primary tabular-nums">{daysPerWeek}×</span>
