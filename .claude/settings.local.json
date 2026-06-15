@@ -35,7 +35,9 @@
       "Bash(python3 scripts/check_contrast.py \"#A8452A\" \"#FAF4E8\")",
       "Bash(python3 scripts/check_contrast.py \"#1A4E5C\" \"#F0F9FB\")",
       "Bash(python3 .claude/skills/agente-designer-senior/scripts/check_contrast.py \"#1A4E5C\" \"#F0F9FB\")",
-      "Bash(python3 .claude/skills/agente-designer-senior/scripts/check_contrast.py \"#1A4E5C\" \"#DDF0F5\")"
+      "Bash(python3 .claude/skills/agente-designer-senior/scripts/check_contrast.py \"#1A4E5C\" \"#DDF0F5\")",
+      "mcp__claude_ai_Canva__list-brand-kits",
+      "mcp__claude_ai_Canva__generate-design"
     ],
     "additionalDirectories": [
       "/Users/pedro/Developer/funcionaria/funcionaria"

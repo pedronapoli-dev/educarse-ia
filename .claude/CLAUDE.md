@@ -116,7 +116,7 @@ export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
 
 ## Design System
 
-**Brand:** Teal-Petróleo (`#1A4E5C`) × Terracota (`#A8452A`) × Creme (`#FAF4E8`). Territory: rigor acadêmico × calor humano — the product's pedagogical seriousness expressed visually. Rollout status, per-screen specs, and design rationale ("lastro"): `DESIGN_SYSTEM.md`.
+**Brand:** Teal-Petróleo (`#1A4E5C`) × Terracota (`#A8452A`) × Creme (`#FAF4E8`). Territory: rigor acadêmico × calor humano — the product's pedagogical seriousness expressed visually. Rollout status, per-screen specs, and design rationale ("lastro"): `DESIGN_SYSTEM.md`. Component catalog (atoms/molecules/organisms, Atomic Design): `COMPONENTS.md`.
 
 **Token architecture** — `apps/web/src/app/globals.css` (CSS vars) + `apps/web/tailwind.config.ts` (Tailwind mapping):
 - **Primitives** (`--teal-*`, `--terra-*`, `--creme-*`, `--neutral-*`, `--success/warning/danger-*`) — raw scale values, implementation detail
@@ -147,7 +147,7 @@ export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
 **Components** (`@layer components` in `globals.css`):
 - Buttons: `.btn-primary` (teal — main actions) · `.btn-accent` (terracota — the one conversion CTA per view) · `.btn-secondary` (outline) · `.btn-ghost` (tertiary)
 - `.card`, `.badge-{primary,accent,green,amber,red,info,gray}`, `.page-header`, `.form-section`
-- `BrandMark` (`@/components/BrandMark`) — shared "e" wordmark; `inverted` prop for dark surfaces (footer, CTA bands). Placeholder for the future proprietary symbol (Fase 5 in `DESIGN_SYSTEM.md`).
+- `BrandMark` (`@/components/BrandMark`) — brand symbol (learning spiral, see `DESIGN_SYSTEM.md` §5), inline SVG with `stroke`/`fill` via design tokens; `inverted` prop for dark surfaces (footer, CTA bands).
 
 **Bloom level → badge mapping:** Lembrar → `badge-gray` · Compreender → `badge-info` · Aplicar → `badge-primary` · Analisar → `badge-accent` · Avaliar → `badge-amber` · Criar → `badge-green`
 

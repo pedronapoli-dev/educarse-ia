@@ -6,7 +6,7 @@ export const Footer = () => {
     <footer className="bg-primary">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
         <div className="flex items-center gap-2">
-          <BrandMark inverted className="h-6 w-6 text-sm" />
+          <BrandMark inverted className="h-6 w-6" />
           <span className="text-xs font-semibold text-on-primary">educar-se-ia</span>
         </div>
 

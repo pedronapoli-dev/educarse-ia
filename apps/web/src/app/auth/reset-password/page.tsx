@@ -54,14 +54,14 @@ const ResetPasswordPage = () => {
       {/* Logo */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <BrandMark className="h-10 w-10 rounded-xl text-lg" />
+          <BrandMark className="h-10 w-10 rounded-xl" />
         </div>
       </div>
 
       {status === 'invalid' ? (
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="card px-6 py-8 sm:px-10 text-center">
-            <h2 className="text-lg font-bold text-text mb-2">Link inválido ou expirado</h2>
+            <h2 className="font-display text-lg font-bold text-text mb-2">Link inválido ou expirado</h2>
             <p className="text-sm text-text-muted leading-relaxed">
               Solicite um novo link de redefinição de senha na tela de login.
             </p>
