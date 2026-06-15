@@ -97,6 +97,13 @@
     --color-border-strong:   var(--creme-400);   /* borda enfatizada          */
     --color-border-focus:    var(--teal-700);    /* anel de foco              */
 
+    /* Borda de campo de formulário — nenhum par creme-on-creme alcança 3:1
+       (não-texto, WCAG 1.4.11): card e input compartilham --color-surface,
+       e a escala creme é toda próxima em luminância (máx. ~2.1:1 entre si).
+       --teal-500 é o tom mais claro da paleta que atinge 3:1 sobre
+       --color-surface (3.18:1) — sinaliza o campo sem recorrer a cinza. */
+    --color-border-input:    var(--teal-500);    /* borda de input/select/textarea */
+
     /* Texto */
     --color-text:            var(--teal-950);    /* texto principal  15.98:1/creme-100 ✅ AAA */
     --color-text-muted:      var(--neutral-700); /* texto secundário  8.09:1/creme-100 ✅ AAA */
@@ -214,7 +221,7 @@
            text-sm leading-6;
     color: rgb(var(--color-text));
     background-color: rgb(var(--color-surface));
-    box-shadow: 0 0 0 1px rgb(var(--color-border));
+    box-shadow: 0 0 0 1px rgb(var(--color-border-input));
     transition: box-shadow var(--motion-fast) var(--ease-standard);
   }
 
