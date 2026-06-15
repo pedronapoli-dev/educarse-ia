@@ -5,6 +5,9 @@
 > Este documento é o **rastreador de rollout**: o que já foi migrado, o
 > que falta, e o "lastro" (justificativa de design) de cada decisão.
 >
+> Catálogo de componentes (átomos/moléculas/organismos, Atomic Design):
+> `COMPONENTS.md`.
+>
 > Atualizado em: 2026-06-14
 >
 > Paleta: **Teal-Petróleo × Terracota × Creme**
@@ -19,7 +22,7 @@
 3. [Fase 4 — Componentes](#3-fase-4--componentes)
 4. [Fase 4 — Telas (ordem de impacto)](#4-fase-4--telas-ordem-de-impacto)
 5. [Páginas auxiliares e estados de erro](#4b-páginas-auxiliares-e-estados-de-erro-fora-do-rastreador-original)
-6. [Fase 5 — Símbolo de marca](#5-fase-5--símbolo-de-marca)
+6. [Fase 5 — Criação do símbolo de marca (logo)](#5-fase-5--criação-do-símbolo-de-marca-logo)
 
 ---
 
@@ -62,16 +65,38 @@ falha silenciosa, sem erro de build. Corrigido na raiz (não por componente): to
 
 ## 2. Fase 3 — Fundações restantes
 
-### 🔲 Tipografia de display — aplicação fora da landing
+### ✅ Tipografia de display — aplicação fora da landing
 
-**Status:** Fraunces está carregada e mapeada, e já aplicada na landing (`/`). Falta revisar as demais telas conforme forem migradas (Fase 4).
+**Status:** Fraunces está carregada, mapeada e aplicada em todos os `h1` de
+página migrados na Fase 4 (`/dashboard`, `/plan/[id]`, `/plan/new`, `/planos`,
+`/conta`, `/login`, `/termos`, `/privacidade`, `/planos/sucesso`) — a maior
+parte do escopo desta fase já foi resolvida organicamente durante a Fase 4.
 
-**Onde usar `font-display`:**
-- Título da página de planos (`h1` no `/planos`)
-- Possivelmente o nome do plano em `/plan/[id]`
-- **Não usar em:** labels, botões, badges, UI utilitária — esses ficam em `font-sans`
+**Auditoria 2026-06-14 — gaps de consistência corrigidos:**
 
-**Especificação de uso:**
+| Arquivo | Antes | Depois | Motivo |
+|---|---|---|---|
+| `apps/web/src/app/login/page.tsx` (estado "Confirme seu e-mail") | `text-lg font-bold` | `+ font-display` | Tela-irmã (formulário) já usa `font-display` no h2 — §6 já documentava "3 telas em font-display", faltava aplicar em 2 delas |
+| `apps/web/src/app/login/page.tsx` (estado "Verifique seu email") | `text-lg font-bold` | `+ font-display` | idem |
+| `apps/web/src/app/auth/reset-password/page.tsx` (estado "Link inválido ou expirado") | `text-lg font-bold` | `+ font-display` | Estado-irmão "Criar nova senha" já usa `font-display` |
+| `apps/web/src/app/plan/new/page.tsx` (passo "Gerando seu plano...") | `text-base font-semibold` | `font-display text-xl font-bold` | Momento climático do wizard (Mayer) — paralelo ao empty state "Nenhum plano ainda" do dashboard (`font-display text-2xl`), em escala menor por ser estado transitório |
+| `apps/web/src/app/error.tsx`, `global-error.tsx`, `not-found.tsx` (h2 principal) | `text-lg font-semibold` | `+ font-display` | h2 funciona como heading principal da página — mesmo papel que os `h1` já migrados, mantém o sistema coerente mesmo em estados de erro |
+
+**Casos avaliados e mantidos em `font-sans` (lastro: Mayer — uma "voz" de
+display por página, repetição dilui o sinal):**
+
+- `/privacidade`, `/termos` — 9–10 `h2` numerados por página (texto legal).
+- `/conta` — `h2` "Perfil/Plano/Comunidade/Zona de risco" são labels de
+  subseção, mesmo papel que `.form-section`.
+- `/planos` — `h2 {plan.name}` nos cards é label repetido por card, não
+  heading de seção.
+- Landing (`page.tsx`) — `h3` de itens dentro de grid (passos, features); a
+  seção já tem `h2` em `font-display`.
+- Modais/componentes (`ExerciseModal`, `RecalibrateModal`,
+  `DeleteAccountModal`, `CheckinCard`, `LimitReachedBlock`, `CooldownNotice`)
+  — UI utilitária recorrente, fora do escopo "hero/section heading".
+
+**Especificação de uso (referência):**
 
 ```tsx
 // ✅ Hero, títulos de seção, momentos de impacto
@@ -94,13 +119,12 @@ falha silenciosa, sem erro de build. Corrigido na raiz (não por componente): to
 
 ## 3. Fase 4 — Componentes
 
-### 🔲 `Navbar.tsx` — símbolo temporário
+### ✅ `Navbar.tsx` — símbolo de marca aplicado
 
 **Arquivo:** `apps/web/src/components/Navbar.tsx`
 
-**Estado atual:** `BrandMark` com "e" em `font-display bg-primary` — funciona como placeholder.
-
-**O que falta:** Quando o símbolo de marca estiver definido (Fase 5), substituir o `<span>` do `BrandMark` por `<svg>`. O componente já está preparado para isso.
+`BrandMark` renderiza a espiral de aprendizagem (Fase 5, §5): `<svg>` com
+traço `stroke-on-primary` + ponto `fill-terra-500` sobre `bg-primary`.
 
 ---
 
@@ -314,30 +338,145 @@ Fase 4, mas faziam parte da "experiência completa" e tinham a mesma identidade 
 
 ---
 
-## 5. Fase 5 — Símbolo de marca
+## 5. Fase 5 — Criação do símbolo de marca (logo)
 
-### 🔲 Definir símbolo proprietário
+### ✅ Espiral de aprendizagem — aplicado
 
-**Estado atual:** "e" tipográfico em `font-display bg-primary` (`BrandMark`) — funciona como placeholder sólido, mas não é uma marca.
+**Estado atual:** símbolo próprio aplicado em `BrandMark.tsx`, `icon.tsx` e
+`opengraph-image.tsx` (Fase 6, §5.8) — substitui o "e" tipográfico que
+funcionava como placeholder. Path SVG e posição do ponto centralizados em
+`apps/web/src/lib/brand-symbol.ts`.
 
-**O que o símbolo precisa comunicar:**
-- Transformação (ementa → plano)
-- Método (estrutura, progressão)
-- Calor (não frieza corporativa)
-- Funcionar em 32×32 (favicon) e 1200×630 (OG)
+#### 5.1 Conceito
 
-**Opções a explorar:**
+O símbolo precisa comunicar, dentro do território "rigor acadêmico × calor humano":
 
-1. **Monograma refinado** — "e" da Fraunces com um detalhe em terracota (um ponto, um traço). Mais seguro para lançamento rápido.
+- **Transformação** — ementa (caos) → plano (estrutura)
+- **Método** — progressão, sequência, etapas
+- **Calor** — não é frieza corporativa de SaaS genérico
+- **Versatilidade técnica** — legível em 32×32 (favicon) e 1200×630 (OG image)
 
-2. **Símbolo abstrato** — uma forma que evoca "caminho de aprendizado" ou "sequência temporal" (referência a Ebbinghaus/curva de esquecimento). Mais ousado, mais memorável se bem executado.
+**Lastro:** Mayer, *Multimedia Learning* — um conceito por asset, alto
+sinal/ruído. O símbolo não tenta comunicar os 4 atributos ao mesmo tempo;
+escolhe transformação + calor como protagonistas (seção 5.2) e deixa
+método/versatilidade como consequência da execução (variantes, seção 5.4).
 
-3. **Wordmark puro** — "educar-se-ia" em Fraunces, com "ia" em terracota. Simples, escalável, não precisa de ícone separado.
+#### 5.2 Decisão de direção
 
-**Recomendação:** Para o beta, monograma refinado (opção 1) via Canva com a MCP disponível. Revisitar o símbolo após validação com primeiros usuários.
+**Escolhido: símbolo abstrato — espiral de aprendizagem.** Traço único em
+espiral (curva de Arquimedes, ~2,75 voltas) terminando em um ponto
+terracota. A abertura do traço (o "vão" entre início e fim da espiral) foi
+posicionada para coincidir com o contador do "e" da Fraunces — comparado
+lado a lado durante o processo de design — evocando a inicial de
+"educar-se-ia" sem desenhar a letra.
 
-**Arquivos a atualizar quando o símbolo estiver pronto:**
-- `apps/web/src/app/icon.tsx` — substituir "e" Georgia por SVG
-- `apps/web/src/app/opengraph-image.tsx` — adicionar símbolo ao layout
-- `apps/web/src/components/BrandMark.tsx` — substituir o `<span>` por `<svg>`
-- `apps/web/public/` — `favicon.ico`, `apple-touch-icon.png`, `logo.svg`
+**Lastro:**
+- Bruner, *currículo em espiral* — o mesmo conteúdo é revisitado em níveis
+  crescentes de profundidade; a espiral é a metáfora visual direta do
+  método pedagógico do produto, resolvendo "Método" (§5.1) de forma
+  literal, não decorativa.
+- Ebbinghaus / SM-2 (já implementado) — o ponto terracota no final do traço
+  lê como "próxima revisão" / "próximo passo", reforçando "Transformação"
+  sem precisar de uma segunda forma.
+- Refactoring UI (Wathan/Schoger) — um traço contínuo + um ponto é a menor
+  composição que ainda comunica direção e destino; evita ruído em 32×32.
+
+**Histórico — pivot do brief original:** a primeira versão deste brief
+propunha um "monograma refinado" ("e" da Fraunces + detalhe terracota) e
+descartava o símbolo abstrato por "exigir validação de mercado antes de
+investir em um ícone sem ligação tipográfica com o nome". Na execução, o
+monograma refinado se mostrou genérico — um "e" com um ponto não é
+"inconfundivelmente educar-se-ia" (critério do agente de design). A espiral
+*cita* o "e" via sua abertura (acima) e tem lastro pedagógico próprio —
+atende ao critério sem os riscos do monograma genérico.
+
+**Descartada:**
+- *Wordmark puro* — não resolve o caso de uso de favicon/ícone de app: "e"
+  isolado é legível em 32×32, "educar-se-ia" inteiro não é. A espiral herda
+  essa vantagem sem ser um monograma.
+
+#### 5.3 Especificação de construção
+
+- **Geometria:** espiral de Arquimedes (`r = a + b·θ`, `a=2.2`, `b=1.15`,
+  ~2,75 voltas), espelhada no eixo horizontal (preserva a "área de assento"
+  do traço, inverte a quiralidade). Path final e posição do ponto em
+  `apps/web/src/lib/brand-symbol.ts` (`BRAND_SYMBOL_PATH`,
+  `BRAND_SYMBOL_DOT`).
+- **Grade de construção:** `viewBox="0 0 32 32"` — mesma proporção do
+  `BrandMark` (`h-8 w-8`), funciona em containers quadrados (favicon,
+  avatar) sem recorte.
+- **Traço:** `stroke-width: 2.4`, `stroke-linecap: round`, `fill: none`.
+- **Detalhe terracota:** círculo `r=2` no terminal do traço (extremidade
+  superior-direita da espiral, ~10-11h) — o "próximo passo" (§5.2).
+- **Área de proteção:** ≥ 20% da altura do símbolo livre de outros
+  elementos (texto, ícone, borda) — herdado do brief original.
+
+#### 5.4 Variantes necessárias
+
+| Variante | Composição | Quando usar |
+|---|---|---|
+| Principal | `bg-primary` (teal-800) + traço `stroke-on-primary` (creme-50) + ponto `fill-terra-500` | superfícies claras — header, landing, cards, favicon |
+| Invertida | traço/ponto monocromáticos `stroke-primary`/`fill-primary` (teal-800) sobre `bg-on-primary` (creme-50) | fundos escuros (footer, CTA bands) — prop `inverted` do `BrandMark` |
+| Reduzida / favicon (32×32) | `<rect rx="7">` teal-800 + traço + ponto, sem padding extra além da área de proteção | `icon.tsx` |
+
+#### 5.5 Do's & don'ts
+
+| ✅ Fazer | ❌ Evitar |
+|---|---|
+| Manter `viewBox="0 0 32 32"` e a proporção 1:1 do container | Distorcer/esticar o traço ou alterar `stroke-width` por contexto |
+| Usar `terra-500` (`fill-terra-500`) para o ponto na variante principal | Usar `accent`/`terra-700` no ponto sobre `bg-primary` — falha de contraste (ver lastro) |
+| Aplicar sobre `bg-primary`/`bg-on-primary` (par já validado) | Aplicar sobre fundos fora da paleta de marca ou com contraste não verificado |
+| Respeitar a área de proteção mínima | Posicionar texto/ícones dentro da área de proteção |
+
+**Lastro:** WCAG 2.2 AA (`check_contrast.py`) — o par originalmente
+especificado para o detalhe (`accent`/`terra-700` `#A8452A` sobre
+`bg-primary` teal-800 `#1A4E5C`) resulta em **1,55:1**, falha até o mínimo
+de não-texto (3:1). `terra-500` (`#DC805A`, já registrado em
+`tailwind.config.ts` com o comentário "ícone terracota, decorativo") resulta
+em **3,18:1** — passa. A variante invertida não é afetada: `primary`
+(`teal-800`) sobre `on-primary` (`creme-50`) = **9,03:1** (AAA) em ambas as
+direções.
+
+#### 5.6 Fluxo de execução
+
+O símbolo foi desenhado diretamente em código, sem Canva: espiral computada
+com `python3` (`math.cos`/`math.sin` sobre `r = a + b·θ`), iterando o path
+em previews HTML estáticas até convergir no formato/posicionamento
+aprovados pelo usuário. O resultado é um path SVG versionável, consistente
+com "sem sistema de assets paralelo" (§5.8 / regra "NUNCA UTILIZE
+GAMBIARRAS TÉCNICAS" do `CLAUDE.md`).
+
+Para variações futuras (ex.: nova proporção de voltas), ajustar `a`/`b`/
+`θ_max` (e o espelhamento, se aplicável) em um script equivalente, gerar
+preview HTML, validar com `check_contrast.py` e atualizar
+`brand-symbol.ts`.
+
+#### 5.7 Checklist de validação
+
+- [x] Contraste do símbolo ≥ 3:1 contra `bg-primary`/`bg-on-primary`
+      (`check_contrast.py`) — traço `creme-50`/`teal-800` = 9,03:1 (AAA);
+      ponto `terra-500`/`teal-800` = 3,18:1 (passa não-texto); invertida
+      `teal-800`/`creme-50` = 9,03:1 (AAA) para traço e ponto.
+- [x] Legível em 32×32 — validado em preview HTML com tile real de 32px; o
+      traço de 2,4px permanece contínuo e o ponto terminal visível.
+- [x] Funciona em escala de cinza — o ponto se distingue por forma (círculo
+      preenchido vs. traço contínuo), não depende da diferença de cor para
+      ser percebido como elemento separado.
+- [x] Variante invertida (`inverted`) testada sobre `bg-primary` (contexto
+      do `Footer`) — tile `bg-on-primary` com traço/ponto `primary`, mesmo
+      par 9,03:1 da variante principal (invertido).
+
+#### 5.8 Arquivos atualizados (Fase 6)
+
+- `apps/web/src/lib/brand-symbol.ts` — novo: `BRAND_SYMBOL_PATH` +
+  `BRAND_SYMBOL_DOT`, fonte única consumida pelos 3 arquivos abaixo.
+- `apps/web/src/components/BrandMark.tsx` — `<span>e</span>` → `<svg>`
+  (traço + ponto), variantes principal/invertida via `inverted`.
+- `apps/web/src/app/icon.tsx` — favicon 32×32, variante principal (cores em
+  hex — `ImageResponse`/satori não processa Tailwind).
+- `apps/web/src/app/opengraph-image.tsx` — símbolo adicionado ao bloco
+  "educar-se-ia" (canto superior-esquerdo), variante principal.
+
+Projeto não tem `apps/web/public/` — `favicon.ico`/`apple-touch-icon.png`
+do brief original não se aplicam; `icon.tsx` já cobre o favicon via
+`ImageResponse` (convenção adotada antes desta fase).

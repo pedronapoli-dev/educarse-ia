@@ -62,7 +62,7 @@ const LoginPage = () => {
       <div className="flex min-h-screen flex-col justify-center bg-bg py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
-            <BrandMark className="h-10 w-10 rounded-xl text-lg" />
+            <BrandMark className="h-10 w-10 rounded-xl" />
           </div>
         </div>
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -72,7 +72,7 @@ const LoginPage = () => {
                 <MailCheck className="text-primary" size={22} />
               </div>
             </div>
-            <h2 className="text-lg font-bold text-text mb-2">Confirme seu e-mail</h2>
+            <h2 className="font-display text-lg font-bold text-text mb-2">Confirme seu e-mail</h2>
             <p className="text-sm text-text-muted leading-relaxed">
               Enviamos um link de confirmação para{' '}
               <span className="font-medium text-text">{email}</span>.
@@ -96,7 +96,7 @@ const LoginPage = () => {
       <div className="flex min-h-screen flex-col justify-center bg-bg py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center">
-            <BrandMark className="h-10 w-10 rounded-xl text-lg" />
+            <BrandMark className="h-10 w-10 rounded-xl" />
           </div>
         </div>
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -106,7 +106,7 @@ const LoginPage = () => {
                 <MailCheck className="text-primary" size={22} />
               </div>
             </div>
-            <h2 className="text-lg font-bold text-text mb-2">Verifique seu email</h2>
+            <h2 className="font-display text-lg font-bold text-text mb-2">Verifique seu email</h2>
             <p className="text-sm text-text-muted leading-relaxed">
               Se houver uma conta cadastrada com{' '}
               <span className="font-medium text-text">{email}</span>,
@@ -132,7 +132,7 @@ const LoginPage = () => {
       {/* Logo + heading */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <BrandMark className="h-10 w-10 rounded-xl text-lg" />
+          <BrandMark className="h-10 w-10 rounded-xl" />
         </div>
         <h2 className="mt-4 text-center font-display text-2xl font-bold leading-tight tracking-tight text-text">
           {mode === 'signin' ? 'Entrar na sua conta' : mode === 'forgot' ? 'Redefinir senha' : 'Criar conta gratuita'}

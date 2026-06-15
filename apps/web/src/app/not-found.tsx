@@ -6,7 +6,7 @@ const NotFoundPage = () => (
     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-soft">
       <SearchX className="text-primary" size={22} />
     </div>
-    <h2 className="text-lg font-semibold text-text">Página não encontrada</h2>
+    <h2 className="font-display text-lg font-semibold text-text">Página não encontrada</h2>
     <p className="mt-2 text-sm text-text-muted">
       A página que você procura não existe ou foi movida.
     </p>

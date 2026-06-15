@@ -463,7 +463,7 @@ const NewPlanPage = () => {
       {step === 'generating' && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Loader2 className="animate-spin text-primary mb-4" size={36} />
-          <h2 className="text-base font-semibold text-text">Gerando seu plano...</h2>
+          <h2 className="font-display text-xl font-bold text-text">Gerando seu plano...</h2>
           <p className="mt-2 text-sm text-text-muted max-w-xs">
             A IA está criando um cronograma personalizado. Isso leva cerca de 20–30 segundos.
           </p>

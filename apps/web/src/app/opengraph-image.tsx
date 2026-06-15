@@ -1,5 +1,7 @@
 import { ImageResponse } from 'next/og'
 
+import { BRAND_SYMBOL_DOT, BRAND_SYMBOL_PATH } from '@/lib/brand-symbol'
+
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -60,16 +62,35 @@ const OpengraphImage = () =>
           {/* Marca */}
           <div
             style={{
-              fontSize: 22,
-              fontWeight: 600,
-              color: '#A8452A',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              fontFamily: 'Georgia, serif',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
               marginBottom: 32,
             }}
           >
-            educar-se-ia
+            <svg width="44" height="44" viewBox="0 0 32 32">
+              <rect width="32" height="32" rx="7" fill="#1A4E5C" />
+              <path
+                d={BRAND_SYMBOL_PATH}
+                fill="none"
+                stroke="#FFFDF9"
+                strokeWidth={2.4}
+                strokeLinecap="round"
+              />
+              <circle cx={BRAND_SYMBOL_DOT.cx} cy={BRAND_SYMBOL_DOT.cy} r={BRAND_SYMBOL_DOT.r} fill="#DC805A" />
+            </svg>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 600,
+                color: '#A8452A',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontFamily: 'Georgia, serif',
+              }}
+            >
+              educar-se-ia
+            </div>
           </div>
 
           {/* Título principal */}

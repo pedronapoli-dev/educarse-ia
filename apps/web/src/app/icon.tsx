@@ -1,11 +1,13 @@
 import { ImageResponse } from 'next/og'
 
+import { BRAND_SYMBOL_DOT, BRAND_SYMBOL_PATH } from '@/lib/brand-symbol'
+
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
-// Marca tipográfica mínima: "e" em teal-petróleo sobre creme.
-// Sem GraduationCap (genérico de edtech); sem indigo (padrão Tailwind).
-// Raio 7 ≈ radius-md proporcional ao tamanho de 32px.
+// Favicon — espiral de aprendizagem (variante principal), ver BrandMark.tsx.
+// ImageResponse/satori não processa Tailwind: cores em hex (teal-800,
+// creme-50, terra-500).
 const Icon = () =>
   new ImageResponse(
     (
@@ -14,19 +16,19 @@ const Icon = () =>
           width: '100%',
           height: '100%',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 7,
-          backgroundColor: '#1A4E5C',
-          color: '#FFFDF9',
-          fontFamily: 'Georgia, serif',
-          fontSize: 19,
-          fontWeight: 700,
-          letterSpacing: '-0.5px',
-          paddingBottom: 1,
         }}
       >
-        e
+        <svg width="32" height="32" viewBox="0 0 32 32">
+          <rect width="32" height="32" rx="7" fill="#1A4E5C" />
+          <path
+            d={BRAND_SYMBOL_PATH}
+            fill="none"
+            stroke="#FFFDF9"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+          />
+          <circle cx={BRAND_SYMBOL_DOT.cx} cy={BRAND_SYMBOL_DOT.cy} r={BRAND_SYMBOL_DOT.r} fill="#DC805A" />
+        </svg>
       </div>
     ),
     { ...size },
