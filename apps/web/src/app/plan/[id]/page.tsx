@@ -76,7 +76,7 @@ const PlanPage = () => {
       </button>
 
       {/* Page heading */}
-      <div className="border-b border-border pb-5 mb-5 flex flex-wrap items-start justify-between gap-4">
+      <div className="border-b border-border pb-5 mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-2xl font-bold leading-tight text-text">{plan.title}</h1>
           {plan.subjects && (
@@ -86,8 +86,8 @@ const PlanPage = () => {
             </p>
           )}
         </div>
-        <div className="flex-shrink-0 text-right">
-          <p className="text-3xl font-semibold tracking-tight text-primary tabular-nums leading-none">
+        <div className="sm:flex-shrink-0 sm:text-right">
+          <p className="text-2xl sm:text-3xl font-semibold tracking-tight text-primary tabular-nums leading-none">
             {plan.progress}<span className="text-base font-medium text-text-subtle">%</span>
           </p>
           <p className="mt-1 text-xs text-text-subtle">{completedDays}/{totalDays} dias</p>

@@ -43,12 +43,16 @@ export const Navbar = () => {
 
           {/* Navegação direita */}
           <div className="flex items-center gap-x-1">
-            <Link href="/dashboard" className={navLinkClass('/dashboard')}>
+            <Link
+              href="/dashboard"
+              className={cn(navLinkClass('/dashboard'), 'hidden sm:inline-block')}
+            >
               Planos
             </Link>
 
-            <Link href="/plan/new" className="btn-primary ml-2 py-1.5">
-              <Plus size={14} aria-hidden="true" /> Novo plano
+            <Link href="/plan/new" title="Novo plano" className="btn-primary ml-2 py-1.5 px-2 sm:px-4">
+              <Plus size={14} aria-hidden="true" />
+              <span className="hidden sm:inline">Novo plano</span>
             </Link>
 
             <Link
