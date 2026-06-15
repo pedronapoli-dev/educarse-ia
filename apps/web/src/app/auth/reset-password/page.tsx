@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase'
+import { translateAuthError } from '@/lib/auth-errors'
 import { BrandMark } from '@/components/BrandMark'
 import { AlertCircle, Loader2, KeyRound } from 'lucide-react'
 
@@ -41,7 +42,7 @@ const ResetPasswordPage = () => {
     setIsLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password })
-    if (error) { setError(error.message); setIsLoading(false); return }
+    if (error) { setError(translateAuthError(error.message)); setIsLoading(false); return }
 
     toast.success('Senha atualizada com sucesso!')
     router.push('/dashboard')

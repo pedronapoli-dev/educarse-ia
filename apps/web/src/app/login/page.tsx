@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { translateAuthError } from '@/lib/auth-errors'
 import { Footer } from '@/components/Footer'
 import { BrandMark } from '@/components/BrandMark'
 import { AlertCircle, Loader2, MailCheck, ArrowLeft } from 'lucide-react'
@@ -26,7 +27,7 @@ const LoginPage = () => {
 
     if (mode === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setError(error.message); setIsLoading(false); return }
+      if (error) { setError(translateAuthError(error.message)); setIsLoading(false); return }
       router.push('/dashboard')
       router.refresh()
       return
@@ -36,7 +37,7 @@ const LoginPage = () => {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
       })
-      if (error) { setError(error.message); setIsLoading(false); return }
+      if (error) { setError(translateAuthError(error.message)); setIsLoading(false); return }
       setIsLoading(false)
       setMode('forgot-sent')
       return
@@ -44,7 +45,7 @@ const LoginPage = () => {
 
     // signup
     const { data, error } = await supabase.auth.signUp({ email, password })
-    if (error) { setError(error.message); setIsLoading(false); return }
+    if (error) { setError(translateAuthError(error.message)); setIsLoading(false); return }
 
     // Supabase retorna session=null quando confirmação de e-mail está habilitada
     if (data.session) {
@@ -127,130 +128,132 @@ const LoginPage = () => {
 
   // ── Formulário de login / cadastro ─────────────────────────
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-bg py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col bg-bg">
+      <div className="flex flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
 
-      {/* Logo + heading */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <BrandMark className="h-10 w-10 rounded-xl" />
+        {/* Logo + heading */}
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="flex justify-center">
+            <BrandMark className="h-10 w-10 rounded-xl" />
+          </div>
+          <h2 className="mt-4 text-center font-display text-2xl font-bold leading-tight tracking-tight text-text">
+            {mode === 'signin' ? 'Entrar na sua conta' : mode === 'forgot' ? 'Redefinir senha' : 'Criar conta gratuita'}
+          </h2>
+          <p className="mt-2 text-center text-sm text-text-muted">
+            {mode === 'signin'
+              ? 'Acesse seus planos de estudo'
+              : mode === 'forgot'
+              ? 'Enviaremos um link para você criar uma nova senha'
+              : 'Comece a estudar de forma inteligente'}
+          </p>
         </div>
-        <h2 className="mt-4 text-center font-display text-2xl font-bold leading-tight tracking-tight text-text">
-          {mode === 'signin' ? 'Entrar na sua conta' : mode === 'forgot' ? 'Redefinir senha' : 'Criar conta gratuita'}
-        </h2>
-        <p className="mt-2 text-center text-sm text-text-muted">
-          {mode === 'signin'
-            ? 'Acesse seus planos de estudo'
-            : mode === 'forgot'
-            ? 'Enviaremos um link para você criar uma nova senha'
-            : 'Comece a estudar de forma inteligente'}
-        </p>
-      </div>
 
-      {/* Form card */}
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="card px-6 py-8 sm:px-10">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Form card */}
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="card px-6 py-8 sm:px-10">
+            <form onSubmit={handleSubmit} className="space-y-5">
 
-            {error && (
-              <div className="flex items-start gap-2.5 rounded-md bg-danger-soft p-3.5 ring-1 ring-inset ring-danger/20">
-                <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
-                <p className="text-sm text-on-danger-soft">{error}</p>
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="email">Email</label>
-              <div className="mt-1.5">
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="voce@email.com"
-                />
-              </div>
-            </div>
-
-            {mode !== 'forgot' && (
-              <div>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password">Senha</label>
-                  {mode === 'signin' && (
-                    <button
-                      type="button"
-                      onClick={() => { setMode('forgot'); setError(null) }}
-                      className="text-sm font-medium text-primary hover:text-primary-hover"
-                    >
-                      Esqueci minha senha
-                    </button>
-                  )}
+              {error && (
+                <div className="flex items-start gap-2.5 rounded-md bg-danger-soft p-3.5 ring-1 ring-inset ring-danger/20">
+                  <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
+                  <p className="text-sm text-on-danger-soft">{error}</p>
                 </div>
+              )}
+
+              <div>
+                <label htmlFor="email">Email</label>
                 <div className="mt-1.5">
                   <input
-                    id="password"
-                    type="password"
+                    id="email"
+                    type="email"
                     required
-                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    autoComplete="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="voce@email.com"
                   />
                 </div>
               </div>
+
+              {mode !== 'forgot' && (
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="password">Senha</label>
+                    {mode === 'signin' && (
+                      <button
+                        type="button"
+                        onClick={() => { setMode('forgot'); setError(null) }}
+                        className="text-sm font-medium text-primary hover:text-primary-hover"
+                      >
+                        Esqueci minha senha
+                      </button>
+                    )}
+                  </div>
+                  <div className="mt-1.5">
+                    <input
+                      id="password"
+                      type="password"
+                      required
+                      autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="btn-primary w-full py-2 mt-2"
+              >
+                {isLoading && <Loader2 size={15} className="animate-spin" />}
+                {mode === 'signin' ? 'Entrar' : mode === 'forgot' ? 'Enviar link de redefinição' : 'Criar conta'}
+              </button>
+            </form>
+
+            {mode === 'forgot' ? (
+              <p className="mt-6 text-center text-sm text-text-muted">
+                <button
+                  onClick={() => { setMode('signin'); setError(null) }}
+                  className="font-semibold text-primary hover:text-primary-hover"
+                >
+                  Voltar para o login
+                </button>
+              </p>
+            ) : (
+              <p className="mt-6 text-center text-sm text-text-muted">
+                {mode === 'signin' ? 'Não tem conta?' : 'Já tem conta?'}{' '}
+                <button
+                  onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null) }}
+                  className="font-semibold text-primary hover:text-primary-hover"
+                >
+                  {mode === 'signin' ? 'Criar conta' : 'Entrar'}
+                </button>
+              </p>
             )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="btn-primary w-full py-2 mt-2"
+            {mode === 'signup' && (
+              <p className="mt-3 text-center text-xs text-text-subtle">
+                Ao criar conta, você concorda com os{' '}
+                <Link href="/termos" className="underline hover:text-text-muted">Termos de Uso</Link>
+                {' '}e a{' '}
+                <Link href="/privacidade" className="underline hover:text-text-muted">Política de Privacidade</Link>.
+              </p>
+            )}
+          </div>
+
+          {/* Voltar para home */}
+          <div className="mt-4 text-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm text-text-subtle hover:text-text-muted transition-colors"
             >
-              {isLoading && <Loader2 size={15} className="animate-spin" />}
-              {mode === 'signin' ? 'Entrar' : mode === 'forgot' ? 'Enviar link de redefinição' : 'Criar conta'}
-            </button>
-          </form>
-
-          {mode === 'forgot' ? (
-            <p className="mt-6 text-center text-sm text-text-muted">
-              <button
-                onClick={() => { setMode('signin'); setError(null) }}
-                className="font-semibold text-primary hover:text-primary-hover"
-              >
-                Voltar para o login
-              </button>
-            </p>
-          ) : (
-            <p className="mt-6 text-center text-sm text-text-muted">
-              {mode === 'signin' ? 'Não tem conta?' : 'Já tem conta?'}{' '}
-              <button
-                onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null) }}
-                className="font-semibold text-primary hover:text-primary-hover"
-              >
-                {mode === 'signin' ? 'Criar conta' : 'Entrar'}
-              </button>
-            </p>
-          )}
-
-          {mode === 'signup' && (
-            <p className="mt-3 text-center text-xs text-text-subtle">
-              Ao criar conta, você concorda com os{' '}
-              <Link href="/termos" className="underline hover:text-text-muted">Termos de Uso</Link>
-              {' '}e a{' '}
-              <Link href="/privacidade" className="underline hover:text-text-muted">Política de Privacidade</Link>.
-            </p>
-          )}
-        </div>
-
-        {/* Voltar para home */}
-        <div className="mt-4 text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-text-subtle hover:text-text-muted transition-colors"
-          >
-            <ArrowLeft size={13} />
-            Voltar para o início
-          </Link>
+              <ArrowLeft size={13} />
+              Voltar para o início
+            </Link>
+          </div>
         </div>
       </div>
 
