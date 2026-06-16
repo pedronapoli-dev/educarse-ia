@@ -45,6 +45,12 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
   }, async (request, reply) => {
+    const userId = getUserId(request)
+
+    const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single()
+    const callResult = await checkAndIncrementApiCall(userId, (user?.plan ?? 'free') as UserPlan)
+    if (!callResult.allowed) return reply.status(402).send(callResult.limited)
+
     const result = await runDiagnosis({
       subjectName:         request.body.subject_name,
       topics:              request.body.topics,
@@ -55,7 +61,7 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       weeklyHours:         request.body.weekly_hours,
       examDate:            request.body.exam_date,
     })
-    return reply.status(200).send({ diagnostic: result })
+    return reply.status(200).send({ diagnostic: result, ...(callResult.warning ?? {}) })
   })
 
   // POST /api/skills/checkin

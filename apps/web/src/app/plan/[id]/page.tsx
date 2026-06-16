@@ -48,13 +48,12 @@ const PlanPage = () => {
     }
   }
 
-  const { currentWeek, completedDays, totalDays, allDays, barColor } = useMemo(() => {
-    if (!plan) return { currentWeek: undefined, completedDays: 0, totalDays: 0, allDays: [], barColor: '' }
+  const { currentWeek, completedDays, totalDays, barColor } = useMemo(() => {
+    if (!plan) return { currentWeek: undefined, completedDays: 0, totalDays: 0, barColor: '' }
     const cw = plan.schedule.find(w => w.week === activeWeek)
     const cd = plan.schedule.reduce((a, w) => a + w.days.filter(d => d.completed).length, 0)
     const td = plan.schedule.reduce((a, w) => a + w.days.length, 0)
-    const ad = plan.schedule.flatMap(w => w.days)
-    return { currentWeek: cw, completedDays: cd, totalDays: td, allDays: ad, barColor: getProgressBarColor(plan.progress) }
+    return { currentWeek: cw, completedDays: cd, totalDays: td, barColor: getProgressBarColor(plan.progress) }
   }, [plan, activeWeek])
 
   if (state === 'loading') return (
@@ -120,9 +119,9 @@ const PlanPage = () => {
             />
           </div>
 
-          {/* Bloom distribution strip */}
+          {/* Bloom distribution strip — semana ativa */}
           <div className="mb-6">
-            <BloomDistribution days={allDays} />
+            <BloomDistribution days={currentWeek?.days ?? []} />
           </div>
 
           {/* Week tabs — pill style */}

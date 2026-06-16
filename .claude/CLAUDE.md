@@ -127,10 +127,10 @@ export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
 | Token | Use |
 |---|---|
 | `bg-bg` / `bg-surface` / `bg-surface-muted` / `bg-surface-subtle` | page background / card-modal-input / secondary surface / brand-tinted hint |
-| `border-border` / `border-border-strong` / `border-border-focus` | default border / emphasized border / focus ring |
+| `border-border` / `border-border-strong` / `border-border-focus` / `border-border-input` | default border / emphasized border / focus ring / form field border (3:1 vs. surface) |
 | `text-text` / `text-text-muted` / `text-text-subtle` / `text-text-on-dark` | primary (AAA) / secondary (AAA) / caption-placeholder (AA) / text on dark surfaces |
 | `bg-primary` / `text-primary` / `bg-primary-soft` / `text-on-primary` | teal — brand, main actions, info badges/chips |
-| `bg-accent` / `text-accent` / `bg-accent-soft` / `text-on-accent` | terracota — conversion CTAs, warm highlight |
+| `bg-accent` / `text-accent` / `bg-accent-soft` / `text-on-accent` / `bg-accent-soft-hover` | terracota — conversion CTAs, warm highlight, hover state for soft surfaces |
 | `*-success` / `*-warning` / `*-danger` / `*-info` (+ `-soft`, `-border`, `on-*-soft`) | functional states |
 
 **Typography:**
@@ -163,7 +163,6 @@ export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
 
 1. **No PDF export** — Planned for future.
 2. **No test coverage for API routes** — Only `limits.ts` and `cooldowns.ts` have unit tests (31 passing via Vitest).
-3. **Design system rollout in progress** — tokens, Navbar, Footer, and landing page (`/`) are migrated. `BloomBadge`, `DayItem`, `CheckinCard`, `ExerciseModal`, `LimitReachedBlock`/`CooldownNotice`, and the dashboard/plan/wizard/pricing/login screens still use legacy `indigo-*`/`gray-*`. Tracker: `DESIGN_SYSTEM.md`.
 
 ## Design Decisions to Preserve
 

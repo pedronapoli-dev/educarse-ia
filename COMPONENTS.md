@@ -9,7 +9,7 @@
 > Histórico de migração por tela ("antes → depois" + lastro de cada decisão):
 > `DESIGN_SYSTEM.md`.
 >
-> Atualizado em: 2026-06-14
+> Atualizado em: 2026-06-15
 
 ---
 
@@ -99,7 +99,7 @@ histórico "antes → depois" de cada migração está em `DESIGN_SYSTEM.md` §4
 |---|---|---|---|---|---|
 | `Navbar` | `apps/web/src/components/Navbar.tsx` | Navegação global fixa | `BrandMark` + `.btn-primary`/`.btn-ghost` + `bg-surface`/`border-border` | oculto em `/` e `/login`; link ativo (`bg-surface-muted`); hover | layout global |
 | `Footer` | `apps/web/src/components/Footer.tsx` | Rodapé institucional | `BrandMark` (inverted) + `bg-primary`/`text-on-primary` | hover em links (`text-on-primary/70` → `text-on-primary`) | `/`, `/login`, `/termos`, `/privacidade` |
-| `DayItem` | `apps/web/src/components/DayItem.tsx` | Sessão de estudo do dia (item de lista) | `BloomBadge` + `.badge-*` + `.card` (`shadow-xs`) | completo/incompleto; critérios de maestria aberto/fechado; hover (`scale-110`) | `/plan/[id]` |
+| `DayItem` | `apps/web/src/components/DayItem.tsx` | Sessão de estudo do dia (item de lista) | `BloomBadge` + `.badge-*` + `.card` (`shadow-xs`) | completo/incompleto; critérios de maestria aberto/fechado; hover (`scale-110`); CTA "Praticar" com ring/hover `accent-soft-hover` (eco de `.badge-accent`) | `/plan/[id]` |
 | `CheckinCard` | `apps/web/src/components/CheckinCard.tsx` | Check-in semanal de progresso | `LimitReachedBlock` + `CooldownNotice` + `.card` + `.btn-primary`/`.btn-secondary` | fechado/form/resultado; loading; erro/limite/cooldown; trend (atrasado/no ritmo/adiantado) | `/plan/[id]` |
 | `ExerciseModal` | `apps/web/src/components/ExerciseModal.tsx` | Exercícios gerados por IA | `BloomBadge` + `LimitReachedBlock` + overlay `bg-text/50`/`bg-surface` | loading; limite; erro; lista de exercícios; respondido/não; dica aberta/fechada | `/plan/[id]` (via `DayItem`) |
 | `RecalibrateModal` | `apps/web/src/components/RecalibrateModal.tsx` | Fluxo "estou travado" → recalibração | `LimitReachedBlock` + `CooldownNotice` + overlay | seleção de bloqueio/tópico; loading; erro/limite/cooldown; resultado (diagnóstico/ações) | `/plan/[id]` |

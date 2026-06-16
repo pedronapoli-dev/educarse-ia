@@ -76,6 +76,7 @@ const config: Config = {
         'on-accent':    'rgb(var(--color-on-accent) / <alpha-value>)',
         'accent-soft':  'rgb(var(--color-accent-soft) / <alpha-value>)',
         'on-accent-soft': 'rgb(var(--color-on-accent-soft) / <alpha-value>)',
+        'accent-soft-hover': 'rgb(var(--color-accent-soft-hover) / <alpha-value>)',
 
         success:        'rgb(var(--color-success) / <alpha-value>)',
         'success-soft': 'rgb(var(--color-success-soft) / <alpha-value>)',

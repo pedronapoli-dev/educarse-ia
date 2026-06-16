@@ -1,10 +1,11 @@
 /**
- * Integration tests for POST /api/skills/checkin e /recalibrate
- * (apps/api/src/routes/skills.ts)
+ * Integration tests for apps/api/src/routes/skills.ts
  *
- * Testa a ordem de verificação (cooldown 429 → limite 402 → execução 200) e
- * os shapes exatos de CooldownResponse / LimitedResponse, mockando supabase,
- * lib/cooldowns, lib/limits e os services de checkin/recalibrate.
+ * checkin/recalibrate: testa a ordem de verificação (cooldown 429 → limite
+ * 402 → execução 200) e os shapes exatos de CooldownResponse / LimitedResponse.
+ * diagnose: testa o wiring com checkAndIncrementApiCall (402 + LimitedResponse,
+ * 200 com/sem warning de 80%). Mocka supabase, lib/cooldowns, lib/limits e os
+ * services de diagnose/checkin/recalibrate.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -16,7 +17,7 @@ const {
   mockSingle, mockFrom,
   mockCheckSkillCooldown, mockRecordSkillUsage,
   mockCheckAndIncrementApiCall,
-  mockRunCheckin, mockRunRecalibration,
+  mockRunCheckin, mockRunRecalibration, mockRunDiagnosis,
 } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockEq     = vi.fn(() => ({ single: mockSingle }))
@@ -29,6 +30,7 @@ const {
     mockCheckAndIncrementApiCall: vi.fn(),
     mockRunCheckin:               vi.fn(),
     mockRunRecalibration:         vi.fn(),
+    mockRunDiagnosis:             vi.fn(),
   }
 })
 
@@ -54,7 +56,7 @@ vi.mock('../../services/recalibrateService', () => ({
 }))
 
 vi.mock('../../services/diagnoseService', () => ({
-  runDiagnosis: vi.fn(),
+  runDiagnosis: mockRunDiagnosis,
 }))
 
 // ── Imports após mock ─────────────────────────────────────────────────────
@@ -96,6 +98,15 @@ const RECALIBRATE_BODY = {
   topics_done:         ['Limites'],
   application_context: 'Engenharia',
   current_scaffolding: 'alto' as const,
+}
+
+const DIAGNOSE_BODY = {
+  subject_name:           'Cálculo I',
+  topics:                 ['Limites', 'Derivadas'],
+  prior_knowledge_level:  3,
+  learning_formats:       ['video', 'texto'],
+  application_context:    'Engenharia',
+  weekly_hours:           6,
 }
 
 beforeEach(() => {
@@ -206,5 +217,54 @@ describe('POST /api/skills/recalibrate', () => {
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ recalibration: { newScaffolding: 'alto' } })
     expect(mockRecordSkillUsage).toHaveBeenCalledWith(TEST_USER_ID, TEST_PLAN_ID, 'recalibrate')
+  })
+})
+
+describe('POST /api/skills/diagnose', () => {
+  it('retorna 402 com LimitedResponse quando o limite de calls foi atingido', async () => {
+    mockCheckAndIncrementApiCall.mockResolvedValueOnce({
+      allowed: false,
+      limited: { limited: true, upgrade_url: '/planos', usage: { used: 10, max: 10, percent: 100 } },
+    })
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/diagnose', payload: DIAGNOSE_BODY })
+
+    expect(res.statusCode).toBe(402)
+    expect(res.json()).toEqual({
+      limited: true,
+      upgrade_url: '/planos',
+      usage: { used: 10, max: 10, percent: 100 },
+    })
+    expect(mockRunDiagnosis).not.toHaveBeenCalled()
+  })
+
+  it('retorna 200 com o diagnóstico quando dentro do limite', async () => {
+    mockCheckAndIncrementApiCall.mockResolvedValueOnce({ allowed: true })
+    mockRunDiagnosis.mockResolvedValueOnce({ zdpLevel: 'foundation' })
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/diagnose', payload: DIAGNOSE_BODY })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ diagnostic: { zdpLevel: 'foundation' } })
+  })
+
+  it('retorna 200 com warning quando uso atinge 80%', async () => {
+    mockCheckAndIncrementApiCall.mockResolvedValueOnce({
+      allowed: true,
+      warning: { warning: true, usage: { used: 8, max: 10, percent: 80 } },
+    })
+    mockRunDiagnosis.mockResolvedValueOnce({ zdpLevel: 'foundation' })
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/diagnose', payload: DIAGNOSE_BODY })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({
+      diagnostic: { zdpLevel: 'foundation' },
+      warning: true,
+      usage: { used: 8, max: 10, percent: 80 },
+    })
   })
 })
