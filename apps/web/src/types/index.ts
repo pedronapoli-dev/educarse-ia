@@ -7,4 +7,4 @@
 export * from '@educarseia/types'
 
 export type LoadingState  = 'idle' | 'loading' | 'success' | 'error'
-export type NewPlanStep   = 'upload' | 'confirm' | 'profile' | 'configure' | 'generating'
+export type NewPlanStep   = 'upload' | 'confirm' | 'select' | 'profile' | 'configure' | 'generating' | 'generating-batch'

@@ -25,7 +25,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
 
 // ── Imports após mock ─────────────────────────────────────────────────────────
 
-import { parseJsonResponse, generate, generateWithTools } from '../anthropic'
+import { parseJsonResponse, generate, generateWithTools, generateFromPdf } from '../anthropic'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -130,6 +130,68 @@ describe('generate', () => {
     await generate('system', 'user', 512)
     // then
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ max_tokens: 512 }))
+  })
+})
+
+// ── generateFromPdf ───────────────────────────────────────────────────────────
+
+describe('generateFromPdf', () => {
+  it('envia document block com type=document e media_type=application/pdf', async () => {
+    // given
+    mockCreate.mockResolvedValueOnce(textResponse('{"name":"Cálculo I"}'))
+    const pdfBase64 = Buffer.from('%PDF-1.4').toString('base64')
+    // when
+    await generateFromPdf('system', 'user', pdfBase64)
+    // then
+    const [params] = mockCreate.mock.calls[0]
+    const content = params.messages[0].content as unknown[]
+    expect(content[0]).toMatchObject({
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 },
+    })
+    expect(content[1]).toMatchObject({ type: 'text', text: 'user' })
+  })
+
+  it('passa o header anthropic-beta para habilitar PDFs', async () => {
+    // given
+    mockCreate.mockResolvedValueOnce(textResponse('[]'))
+    // when
+    await generateFromPdf('system', 'user', 'base64data')
+    // then
+    const [, options] = mockCreate.mock.calls[0]
+    expect(options?.headers).toMatchObject({ 'anthropic-beta': 'pdfs-2024-09-25' })
+  })
+
+  it('retorna o texto stripado de code fences', async () => {
+    // given
+    mockCreate.mockResolvedValueOnce(textResponse('```json\n[{"name":"Física"}]\n```'))
+    // when
+    const result = await generateFromPdf('system', 'user', 'base64data')
+    // then
+    expect(result).toBe('[{"name":"Física"}]')
+  })
+
+  it('lança erro quando o bloco de conteúdo não é do tipo text', async () => {
+    // given
+    mockCreate.mockResolvedValueOnce({
+      stop_reason: 'end_turn',
+      content: [{ type: 'tool_use', id: 'tu_1', name: 'tool', input: {} }],
+      usage: { input_tokens: 5, output_tokens: 5 },
+    })
+    // when / then
+    await expect(generateFromPdf('system', 'user', 'base64')).rejects.toThrow('Resposta inesperada da API')
+  })
+
+  it('passa maxTokens correto para a API', async () => {
+    // given
+    mockCreate.mockResolvedValueOnce(textResponse('[]'))
+    // when
+    await generateFromPdf('system', 'user', 'base64', 1024)
+    // then
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ max_tokens: 1024 }),
+      expect.anything()
+    )
   })
 })
 

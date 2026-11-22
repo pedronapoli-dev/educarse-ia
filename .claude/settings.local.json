@@ -37,7 +37,12 @@
       "Bash(python3 .claude/skills/agente-designer-senior/scripts/check_contrast.py \"#1A4E5C\" \"#F0F9FB\")",
       "Bash(python3 .claude/skills/agente-designer-senior/scripts/check_contrast.py \"#1A4E5C\" \"#DDF0F5\")",
       "mcp__claude_ai_Canva__list-brand-kits",
-      "mcp__claude_ai_Canva__generate-design"
+      "mcp__claude_ai_Canva__generate-design",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__list_organizations",
+      "mcp__claude_ai_Supabase__restore_project",
+      "Bash(docker info *)",
+      "Bash(brew upgrade *)"
     ],
     "additionalDirectories": [
       "/Users/pedro/Developer/funcionaria/funcionaria"

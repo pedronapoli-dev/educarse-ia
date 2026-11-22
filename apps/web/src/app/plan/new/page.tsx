@@ -3,9 +3,9 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
-import { Upload, FileText, Loader2, ChevronRight, AlertCircle, Check, Sparkles } from 'lucide-react'
+import { Upload, FileText, Loader2, ChevronRight, AlertCircle, Check, Sparkles, BookOpen } from 'lucide-react'
 import { subjectsApi, plansApi } from '@/lib/api'
-import type { Subject, NewPlanStep, LearningFormat, StudentProfile } from '@/types'
+import type { Subject, ParsedSubject, NewPlanStep, LearningFormat, StudentProfile } from '@/types'
 
 const extractApiError = (err: unknown, fallback: string): string => {
   if (err && typeof err === 'object' && 'error' in err) return String((err as { error: string }).error)
@@ -14,11 +14,19 @@ const extractApiError = (err: unknown, fallback: string): string => {
 }
 
 const STEPS: { key: NewPlanStep; label: string }[] = [
-  { key: 'upload',     label: 'Upload'     },
-  { key: 'confirm',    label: 'Confirmar'  },
-  { key: 'profile',    label: 'Perfil'     },
-  { key: 'configure',  label: 'Configurar' },
-  { key: 'generating', label: 'Gerando'    },
+  { key: 'upload',            label: 'Upload'     },
+  { key: 'confirm',           label: 'Confirmar'  },
+  { key: 'profile',           label: 'Perfil'     },
+  { key: 'configure',         label: 'Configurar' },
+  { key: 'generating',        label: 'Gerando'    },
+]
+
+const EMENTARIO_STEPS: { key: NewPlanStep; label: string }[] = [
+  { key: 'upload',            label: 'Upload'    },
+  { key: 'select',            label: 'Selecionar' },
+  { key: 'profile',           label: 'Perfil'    },
+  { key: 'configure',         label: 'Configurar'},
+  { key: 'generating-batch',  label: 'Gerando'   },
 ]
 
 const KNOWLEDGE_LABELS: Record<number, string> = {
@@ -49,11 +57,17 @@ const NewPlanPage = () => {
   const [step, setStep]           = useState<NewPlanStep>('upload')
   const [subject, setSubject]     = useState<Subject | null>(null)
   const [error, setError]         = useState<string | null>(null)
+  const [scannedHint, setScannedHint] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [hoursPerDay, setHoursPerDay] = useState(2)
   const [daysPerWeek, setDaysPerWeek] = useState(5)
   const [examDate, setExamDate]       = useState('')
   const [meta, setMeta] = useState({ course: '', university: '', code: '', credits: '' })
+
+  // Ementário state
+  const [ementarioSubjects, setEmentarioSubjects]   = useState<ParsedSubject[]>([])
+  const [selectedIndexes, setSelectedIndexes]        = useState<Set<number>>(new Set())
+  const [batchProgress, setBatchProgress]            = useState<{ current: number; total: number; name: string } | null>(null)
 
   // Student profile state
   const [priorKnowledge, setPriorKnowledge]         = useState(5)
@@ -61,30 +75,54 @@ const NewPlanPage = () => {
   const [previousBlocks, setPreviousBlocks]          = useState('')
   const [applicationContext, setApplicationContext]   = useState('')
 
+  const isEmentarioFlow = ementarioSubjects.length > 0
+
   const onDrop = useCallback(async (files: File[]) => {
     const file = files[0]; if (!file) return
-    setIsLoading(true); setError(null)
+    setIsLoading(true); setError(null); setScannedHint(null)
     try {
       const res = await subjectsApi.uploadPdf(file)
-      setSubject(res.subject)
-      setMeta({
-        course:     res.subject.course     ?? '',
-        university: res.subject.university ?? '',
-        code:       res.subject.code       ?? '',
-        credits:    res.subject.credits    != null ? String(res.subject.credits) : '',
-      })
-      setStep('confirm')
+      if (res.isEmentario) {
+        setEmentarioSubjects(res.subjects)
+        setSelectedIndexes(new Set(res.subjects.map((_, i) => i)))
+        setStep('select')
+      } else {
+        setSubject(res.subject)
+        setMeta({
+          course:     res.subject.course     ?? '',
+          university: res.subject.university ?? '',
+          code:       res.subject.code       ?? '',
+          credits:    res.subject.credits    != null ? String(res.subject.credits) : '',
+        })
+        setStep('confirm')
+      }
     } catch (err: unknown) {
-      const isScanned = err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 422
-      setError(isScanned
-        ? 'Este PDF parece ser um scan ou imagem de algum arquivo, mas essa é uma funcionalidade ainda em construção. Em breve prometo devolver o resultado esperado! =D'
-        : extractApiError(err, 'Erro ao processar o PDF.'))
+      const apiErr = err && typeof err === 'object' ? (err as Record<string, unknown>) : {}
+      if (apiErr.status === 422 && apiErr.code === 'PDF_SCANNED') {
+        setError(
+          (apiErr.message as string | undefined) ??
+          'Este PDF não contém texto e não pode ser processado. Use um PDF criado digitalmente ou insira o texto manualmente.'
+        )
+        setScannedHint((apiErr.hint as string | undefined) ?? null)
+      } else {
+        setError(extractApiError(err, 'Erro ao processar o PDF.'))
+        setScannedHint(null)
+      }
     } finally { setIsLoading(false) }
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, accept: { 'application/pdf': ['.pdf'] }, maxFiles: 1, disabled: isLoading,
   })
+
+  const toggleSubjectSelection = (index: number) => {
+    setSelectedIndexes(prev => {
+      const next = new Set(prev)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
+  }
 
   const handleGeneratePlan = async () => {
     if (!subject) return
@@ -108,7 +146,41 @@ const NewPlanPage = () => {
     }
   }
 
-  const currentIdx = STEPS.findIndex(s => s.key === step)
+  const handleGenerateBatch = async () => {
+    const selectedSubjects = ementarioSubjects.filter((_, i) => selectedIndexes.has(i))
+    if (selectedSubjects.length === 0) return
+
+    setStep('generating-batch'); setError(null)
+    try {
+      const { subjects: savedSubjects } = await subjectsApi.batch(selectedSubjects)
+
+      const studentProfile: StudentProfile = {
+        prior_knowledge_level: priorKnowledge,
+        learning_formats: learningFormats,
+        previous_blocks: previousBlocks ? previousBlocks.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+        application_context: applicationContext,
+        weekly_hours_available: hoursPerDay * daysPerWeek,
+      }
+
+      for (let idx = 0; idx < savedSubjects.length; idx++) {
+        const savedSubject = savedSubjects[idx]
+        setBatchProgress({ current: idx + 1, total: savedSubjects.length, name: savedSubject.name })
+        await plansApi.generate({
+          subject_id: savedSubject.id, hours_per_day: hoursPerDay,
+          days_per_week: daysPerWeek, exam_date: examDate || undefined,
+          student_profile: studentProfile,
+        })
+      }
+
+      router.push('/dashboard')
+    } catch (err: unknown) {
+      setError(extractApiError(err, 'Erro ao gerar os planos.')); setStep('configure')
+      setBatchProgress(null)
+    }
+  }
+
+  const activeSteps = isEmentarioFlow ? EMENTARIO_STEPS : STEPS
+  const currentIdx  = activeSteps.findIndex(s => s.key === step)
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10 sm:px-6">
@@ -119,10 +191,10 @@ const NewPlanPage = () => {
         <p className="mt-1 text-sm text-text-muted">Faça upload da ementa e configure sua disponibilidade</p>
       </div>
 
-      {/* Steps — Tailwind "steps" block */}
+      {/* Steps */}
       <nav aria-label="Progresso" className="mb-8">
         <ol role="list" className="flex items-center gap-x-2">
-          {STEPS.map((s, i) => {
+          {activeSteps.map((s, i) => {
             const done    = i < currentIdx
             const current = i === currentIdx
             return (
@@ -137,7 +209,7 @@ const NewPlanPage = () => {
                 <span className={`hidden sm:block text-xs font-medium ${current ? 'text-text' : 'text-text-subtle'}`}>
                   {s.label}
                 </span>
-                {i < STEPS.length - 1 && (
+                {i < activeSteps.length - 1 && (
                   <div className={`flex-1 h-px ${i < currentIdx ? 'bg-primary' : 'bg-border'}`} />
                 )}
               </li>
@@ -148,9 +220,16 @@ const NewPlanPage = () => {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 flex items-start gap-2.5 rounded-md bg-danger-soft p-3.5 ring-1 ring-inset ring-danger/20">
-          <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
-          <p className="text-sm text-on-danger-soft">{error}</p>
+        <div className="mb-6 rounded-lg bg-danger-soft p-4 ring-1 ring-inset ring-danger/20">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="mt-px flex-shrink-0 text-danger" size={15} />
+            <p className="text-sm text-on-danger-soft">{error}</p>
+          </div>
+          {scannedHint && (
+            <p className="mt-2.5 border-t border-danger/15 pt-2.5 text-xs text-on-danger-soft/80">
+              💡 {scannedHint}
+            </p>
+          )}
         </div>
       )}
 
@@ -181,9 +260,78 @@ const NewPlanPage = () => {
               <p className="mt-1 text-sm text-text-muted">
                 ou <span className="font-medium text-primary">clique para selecionar</span>
               </p>
-              <p className="mt-3 text-xs text-text-subtle">PDF até 10 MB</p>
+              <p className="mt-3 text-xs text-text-subtle">PDF até 10 MB · Ementa única ou Ementário</p>
             </>
           )}
+        </div>
+      )}
+
+      {/* ── Step: Select (Ementário) ── */}
+      {step === 'select' && ementarioSubjects.length > 0 && (
+        <div className="space-y-4">
+          <div className="card p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-accent-soft">
+                <BookOpen className="text-accent" size={16} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text">Ementário detectado</p>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {ementarioSubjects.length} disciplinas encontradas. Selecione as que deseja planejar.
+                </p>
+              </div>
+            </div>
+
+            <ul className="divide-y divide-border">
+              {ementarioSubjects.map((s, i) => {
+                const selected = selectedIndexes.has(i)
+                return (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => toggleSubjectSelection(i)}
+                      className={`w-full flex items-center gap-3 px-1 py-3.5 text-left transition-colors hover:bg-surface-subtle rounded-sm ${selected ? '' : 'opacity-60'}`}
+                    >
+                      <div className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                        selected ? 'bg-primary border-primary' : 'bg-surface border-border-strong'
+                      }`}>
+                        {selected && <Check size={11} className="text-on-primary" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-text truncate">{s.name}</p>
+                        {(s.code || s.workload_hours || s.topics.length > 0) && (
+                          <p className="text-xs text-text-subtle mt-0.5">
+                            {[s.code, s.workload_hours ? `${s.workload_hours}h` : null, s.topics.length > 0 ? `${s.topics.length} tópicos` : null]
+                              .filter(Boolean).join(' · ')}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+
+            <p className="mt-3 text-xs text-text-subtle">
+              {selectedIndexes.size} de {ementarioSubjects.length} selecionadas
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => { setEmentarioSubjects([]); setSelectedIndexes(new Set()); setStep('upload') }}
+              className="btn-secondary flex-1"
+            >
+              Voltar
+            </button>
+            <button
+              onClick={() => setStep('profile')}
+              disabled={selectedIndexes.size === 0}
+              className="btn-primary flex-1"
+            >
+              Continuar ({selectedIndexes.size}) <ChevronRight size={15} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -291,12 +439,17 @@ const NewPlanPage = () => {
       {/* ── Step: Profile ── */}
       {step === 'profile' && (
         <div>
+          {isEmentarioFlow && (
+            <div className="mb-4 rounded-md bg-primary-soft p-3 text-xs text-primary">
+              Este perfil será aplicado a todas as {selectedIndexes.size} disciplinas selecionadas.
+            </div>
+          )}
           <div className="card divide-y divide-border">
 
             {/* Prior knowledge slider */}
             <div className="px-5 py-5">
               <div className="flex items-center justify-between mb-1">
-                <label className="font-semibold">Conhecimento previo na materia</label>
+                <label className="font-semibold">Conhecimento prévio no componente</label>
                 <span className="badge-primary tabular-nums">{priorKnowledge}/10</span>
               </div>
               <p className="text-xs text-text-subtle mb-3">{KNOWLEDGE_LABELS[priorKnowledge]}</p>
@@ -348,7 +501,7 @@ const NewPlanPage = () => {
                 rows={2}
                 value={applicationContext}
                 onChange={e => setApplicationContext(e.target.value)}
-                placeholder="Seu objetivo real com essa materia..."
+                placeholder="Seu objetivo real com esse componente..."
                 className="mt-1.5"
               />
             </div>
@@ -372,7 +525,7 @@ const NewPlanPage = () => {
           </div>
 
           <div className="mt-5 flex gap-3">
-            <button onClick={() => setStep('confirm')} className="btn-secondary flex-1">
+            <button onClick={() => setStep(isEmentarioFlow ? 'select' : 'confirm')} className="btn-secondary flex-1">
               Voltar
             </button>
             <button
@@ -452,9 +605,15 @@ const NewPlanPage = () => {
           </div>
 
           <div className="mt-5">
-            <button onClick={handleGeneratePlan} className="btn-primary w-full py-2.5">
-              <Sparkles size={15} /> Gerar plano com IA
-            </button>
+            {isEmentarioFlow ? (
+              <button onClick={handleGenerateBatch} className="btn-accent w-full py-2.5">
+                <Sparkles size={15} /> Gerar {selectedIndexes.size} plano{selectedIndexes.size !== 1 ? 's' : ''} com IA
+              </button>
+            ) : (
+              <button onClick={handleGeneratePlan} className="btn-primary w-full py-2.5">
+                <Sparkles size={15} /> Gerar plano com IA
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -467,6 +626,34 @@ const NewPlanPage = () => {
           <p className="mt-2 text-sm text-text-muted max-w-xs">
             A IA está criando um cronograma personalizado. Isso leva cerca de 20–30 segundos.
           </p>
+        </div>
+      )}
+
+      {/* ── Step: Generating Batch ── */}
+      {step === 'generating-batch' && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Loader2 className="animate-spin text-primary mb-4" size={36} />
+          <h2 className="font-display text-xl font-bold text-text">
+            {batchProgress
+              ? `Gerando plano ${batchProgress.current}/${batchProgress.total}`
+              : 'Preparando planos...'}
+          </h2>
+          {batchProgress && (
+            <p className="mt-2 text-sm font-medium text-text-muted">{batchProgress.name}</p>
+          )}
+          <p className="mt-2 text-sm text-text-subtle max-w-xs">
+            Cada plano leva cerca de 20–30 segundos. Não feche esta página.
+          </p>
+          {batchProgress && (
+            <div className="mt-6 w-full max-w-xs">
+              <div className="h-1.5 w-full rounded-full bg-surface-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

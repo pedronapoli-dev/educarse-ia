@@ -1,7 +1,8 @@
 import { FastifyPluginAsync } from 'fastify'
 import { supabase } from '../lib/supabase'
 import { getUserId } from '../plugins/auth'
-import { extractTextFromPdf, parseSubjectFromText, saveSubject } from '../services/subjectService'
+import { parseSubjectFromText, parseSubjectFromPdf, saveSubject, ScannedPdfError } from '../services/subjectService'
+import type { ParsedSubject } from '@educarseia/types'
 
 export const subjectsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/upload', { preHandler: [fastify.authenticate] }, async (request, reply) => {
@@ -9,12 +10,25 @@ export const subjectsRoutes: FastifyPluginAsync = async (fastify) => {
     const data = await request.file()
     if (!data) return reply.status(400).send({ error: 'Nenhum arquivo enviado' })
     if (data.mimetype !== 'application/pdf') return reply.status(400).send({ error: 'Apenas PDF' })
-    const buffer  = await data.toBuffer()
-    const rawText = await extractTextFromPdf(buffer)
-    if (rawText.length < 50) return reply.status(422).send({ error: 'PDF sem texto suficiente' })
-    const parsed  = await parseSubjectFromText(rawText)
-    const subject = await saveSubject(userId, parsed, rawText, 'pdf')
-    return reply.status(201).send({ subject })
+    const buffer = await data.toBuffer()
+    try {
+      const parsed = await parseSubjectFromPdf(buffer)
+      if (parsed.length === 1) {
+        const subject = await saveSubject(userId, parsed[0], '', 'pdf')
+        return reply.status(201).send({ subject })
+      }
+      return reply.status(200).send({ isEmentario: true, subjects: parsed })
+    } catch (err) {
+      if (err instanceof ScannedPdfError) {
+        return reply.status(422).send({
+          code: 'PDF_SCANNED',
+          error: 'PDF escaneado não suportado',
+          message: 'Este PDF parece ter sido gerado por foto ou scanner e não contém texto que possamos processar. Use um PDF criado digitalmente — a maioria dos sistemas acadêmicos exporta ementas nesse formato.',
+          hint: 'Se você só tem o PDF escaneado, copie o texto da ementa manualmente e use a opção "Inserir texto".',
+        })
+      }
+      throw err
+    }
   })
 
   fastify.post('/text', {
@@ -23,9 +37,28 @@ export const subjectsRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request, reply) => {
     const userId = getUserId(request)
     const { text } = request.body as { text: string }
-    const parsed  = await parseSubjectFromText(text)
-    const subject = await saveSubject(userId, parsed, text, 'text')
-    return reply.status(201).send({ subject })
+    const parsed = await parseSubjectFromText(text)
+    if (parsed.length === 1) {
+      const subject = await saveSubject(userId, parsed[0], text, 'text')
+      return reply.status(201).send({ subject })
+    }
+    return reply.status(200).send({ isEmentario: true, subjects: parsed })
+  })
+
+  fastify.post('/batch', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      body: {
+        type: 'object',
+        required: ['subjects'],
+        properties: { subjects: { type: 'array', minItems: 1, items: { type: 'object' } } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = getUserId(request)
+    const { subjects: parsedSubjects } = request.body as { subjects: ParsedSubject[] }
+    const saved = await Promise.all(parsedSubjects.map(p => saveSubject(userId, p, '', 'pdf')))
+    return reply.status(201).send({ subjects: saved })
   })
 
   fastify.get('/', { preHandler: [fastify.authenticate] }, async (request) => {

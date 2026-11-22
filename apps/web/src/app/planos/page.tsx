@@ -64,7 +64,7 @@ const PLANS = [
     name:  'Pro',
     price: 'R$ 29,90',
     period: '/mês',
-    description: 'Para dominar qualquer matéria',
+    description: 'Para dominar qualquer componente curricular',
     icon: Zap,
     highlight: true,
     cta: 'Assinar Pro',

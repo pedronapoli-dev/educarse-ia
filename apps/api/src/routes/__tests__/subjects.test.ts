@@ -1,11 +1,9 @@
 /**
- * Integration tests for apps/api/src/routes/subjects.ts
+ * Unit tests for apps/api/src/routes/subjects.ts
  *
- * Cobre os 6 endpoints (upload, text, list, get, patch, delete), mockando
- * supabase com um builder encadeável genérico (select/insert/update/delete/
- * eq/order, com single() e await resolvendo a fila de resultados) e
- * services/subjectService. Upload usa FormData/Blob globais — light-my-request
- * 6.x envia como multipart real.
+ * Cobre os 7 endpoints (upload, text, batch, list, get, patch, delete), mockando
+ * supabase com um builder encadeável genérico e services/subjectService.
+ * Upload usa FormData/Blob globais — light-my-request 6.x envia como multipart real.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -16,7 +14,8 @@ import multipart from '@fastify/multipart'
 
 const {
   supabaseMock,
-  mockExtractTextFromPdf, mockParseSubjectFromText, mockSaveSubject,
+  mockParseSubjectFromText, mockParseSubjectFromPdf, mockSaveSubject,
+  MockScannedPdfError,
 } = vi.hoisted(() => {
   type Result = { data: unknown; error: unknown }
   const queue: Result[] = []
@@ -33,6 +32,17 @@ const {
   const from       = vi.fn(() => raw)
   const deleteUser = vi.fn()
 
+  // Mirror real ScannedPdfError — a rota faz `instanceof ScannedPdfError`
+  // usando o valor importado do módulo mockado, então esse construtor local
+  // precisa ser registrado como `ScannedPdfError` no mock do módulo.
+  class MockScannedPdfError extends Error {
+    readonly code = 'PDF_SCANNED' as const
+    constructor() {
+      super('PDF sem camada de texto detectada.')
+      this.name = 'ScannedPdfError'
+    }
+  }
+
   return {
     supabaseMock: {
       from,
@@ -40,9 +50,10 @@ const {
       supabase: { from, auth: { admin: { deleteUser } } },
       queueResult: (result: Result) => { queue.push(result) },
     },
-    mockExtractTextFromPdf:   vi.fn(),
     mockParseSubjectFromText: vi.fn(),
+    mockParseSubjectFromPdf:  vi.fn(),
     mockSaveSubject:          vi.fn(),
+    MockScannedPdfError,
   }
 })
 
@@ -51,9 +62,10 @@ vi.mock('../../lib/supabase', () => ({
 }))
 
 vi.mock('../../services/subjectService', () => ({
-  extractTextFromPdf:   mockExtractTextFromPdf,
   parseSubjectFromText: mockParseSubjectFromText,
+  parseSubjectFromPdf:  mockParseSubjectFromPdf,
   saveSubject:          mockSaveSubject,
+  ScannedPdfError:      MockScannedPdfError,
 }))
 
 // ── Imports após mock ─────────────────────────────────────────────────────
@@ -73,25 +85,43 @@ const buildApp = async () => {
   return app
 }
 
+const parsedSubject = { name: 'Cálculo I', topics: [], bibliography: [], prerequisites: [] }
+const parsedSubject2 = { name: 'Álgebra Linear', topics: [], bibliography: [], prerequisites: [] }
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
 
+// ── POST /upload ─────────────────────────────────────────────────────────────
+
 describe('POST /api/subjects/upload', () => {
-  it('retorna 201 com a ementa salva quando o PDF é válido', async () => {
-    mockExtractTextFromPdf.mockResolvedValueOnce('texto extraído da ementa '.repeat(5))
-    mockParseSubjectFromText.mockResolvedValueOnce({ name: 'Cálculo I', topics: [] })
+  it('retorna 201 com a ementa salva quando PDF tem 1 disciplina', async () => {
+    mockParseSubjectFromPdf.mockResolvedValueOnce([parsedSubject])
     mockSaveSubject.mockResolvedValueOnce({ id: 'subject-1', name: 'Cálculo I' })
 
     const form = new FormData()
-    form.append('file', new Blob([Buffer.from('%PDF-1.4 conteúdo de teste')], { type: 'application/pdf' }), 'ementa.pdf')
+    form.append('file', new Blob([Buffer.from('%PDF-1.4')], { type: 'application/pdf' }), 'ementa.pdf')
 
     const app = await buildApp()
     const res = await app.inject({ method: 'POST', url: '/api/subjects/upload', payload: form })
 
     expect(res.statusCode).toBe(201)
     expect(res.json()).toEqual({ subject: { id: 'subject-1', name: 'Cálculo I' } })
-    expect(mockSaveSubject).toHaveBeenCalledWith(TEST_USER_ID, { name: 'Cálculo I', topics: [] }, expect.any(String), 'pdf')
+    expect(mockSaveSubject).toHaveBeenCalledWith(TEST_USER_ID, parsedSubject, '', 'pdf')
+  })
+
+  it('retorna 200 com isEmentario=true quando PDF tem múltiplas disciplinas', async () => {
+    mockParseSubjectFromPdf.mockResolvedValueOnce([parsedSubject, parsedSubject2])
+
+    const form = new FormData()
+    form.append('file', new Blob([Buffer.from('%PDF-1.4')], { type: 'application/pdf' }), 'ementario.pdf')
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/subjects/upload', payload: form })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ isEmentario: true, subjects: [parsedSubject, parsedSubject2] })
+    expect(mockSaveSubject).not.toHaveBeenCalled()
   })
 
   it('retorna 400 quando nenhum arquivo é enviado', async () => {
@@ -103,7 +133,7 @@ describe('POST /api/subjects/upload', () => {
 
     expect(res.statusCode).toBe(400)
     expect(res.json()).toEqual({ error: 'Nenhum arquivo enviado' })
-    expect(mockExtractTextFromPdf).not.toHaveBeenCalled()
+    expect(mockParseSubjectFromPdf).not.toHaveBeenCalled()
   })
 
   it('retorna 400 quando o arquivo enviado não é PDF', async () => {
@@ -115,28 +145,35 @@ describe('POST /api/subjects/upload', () => {
 
     expect(res.statusCode).toBe(400)
     expect(res.json()).toEqual({ error: 'Apenas PDF' })
-    expect(mockExtractTextFromPdf).not.toHaveBeenCalled()
+    expect(mockParseSubjectFromPdf).not.toHaveBeenCalled()
   })
 
-  it('retorna 422 quando o PDF não tem texto suficiente', async () => {
-    mockExtractTextFromPdf.mockResolvedValueOnce('texto curto')
+  it('retorna 422 com code PDF_SCANNED quando PDF não contém camada de texto', async () => {
+    // given: parseSubjectFromPdf lança ScannedPdfError (PDF escaneado / foto)
+    mockParseSubjectFromPdf.mockRejectedValueOnce(new MockScannedPdfError())
 
     const form = new FormData()
-    form.append('file', new Blob([Buffer.from('%PDF-1.4')], { type: 'application/pdf' }), 'ementa.pdf')
+    form.append('file', new Blob([Buffer.from('%PDF-1.4')], { type: 'application/pdf' }), 'scanned.pdf')
 
     const app = await buildApp()
     const res = await app.inject({ method: 'POST', url: '/api/subjects/upload', payload: form })
 
     expect(res.statusCode).toBe(422)
-    expect(res.json()).toEqual({ error: 'PDF sem texto suficiente' })
-    expect(mockParseSubjectFromText).not.toHaveBeenCalled()
+    const body = res.json()
+    expect(body.code).toBe('PDF_SCANNED')
+    expect(body.error).toBe('PDF escaneado não suportado')
+    expect(body.message).toContain('foto ou scanner')
+    expect(body.hint).toContain('Inserir texto')
+    expect(mockSaveSubject).not.toHaveBeenCalled()
   })
 })
 
+// ── POST /text ────────────────────────────────────────────────────────────────
+
 describe('POST /api/subjects/text', () => {
-  it('retorna 201 com a ementa salva', async () => {
+  it('retorna 201 com a ementa salva quando há 1 disciplina', async () => {
     const text = 'texto da ementa enviado manualmente pelo usuário '.repeat(2)
-    mockParseSubjectFromText.mockResolvedValueOnce({ name: 'Física I', topics: [] })
+    mockParseSubjectFromText.mockResolvedValueOnce([{ name: 'Física I', topics: [] }])
     mockSaveSubject.mockResolvedValueOnce({ id: 'subject-2', name: 'Física I' })
 
     const app = await buildApp()
@@ -147,6 +184,18 @@ describe('POST /api/subjects/text', () => {
     expect(mockSaveSubject).toHaveBeenCalledWith(TEST_USER_ID, { name: 'Física I', topics: [] }, text, 'text')
   })
 
+  it('retorna 200 com isEmentario=true quando texto tem múltiplas disciplinas', async () => {
+    const text = 'ementário com 2 disciplinas detalhadas '.repeat(3)
+    mockParseSubjectFromText.mockResolvedValueOnce([parsedSubject, parsedSubject2])
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/subjects/text', payload: { text } })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ isEmentario: true, subjects: [parsedSubject, parsedSubject2] })
+    expect(mockSaveSubject).not.toHaveBeenCalled()
+  })
+
   it('retorna 400 quando o texto tem menos de 50 caracteres', async () => {
     const app = await buildApp()
     const res = await app.inject({ method: 'POST', url: '/api/subjects/text', payload: { text: 'muito curto' } })
@@ -155,6 +204,48 @@ describe('POST /api/subjects/text', () => {
     expect(mockParseSubjectFromText).not.toHaveBeenCalled()
   })
 })
+
+// ── POST /batch ───────────────────────────────────────────────────────────────
+
+describe('POST /api/subjects/batch', () => {
+  it('salva todas as ementas selecionadas e retorna 201 com lista', async () => {
+    mockSaveSubject
+      .mockResolvedValueOnce({ id: 'subject-1', name: 'Cálculo I' })
+      .mockResolvedValueOnce({ id: 'subject-2', name: 'Álgebra Linear' })
+
+    const app = await buildApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/subjects/batch',
+      payload: { subjects: [parsedSubject, parsedSubject2] },
+    })
+
+    expect(res.statusCode).toBe(201)
+    expect(res.json()).toEqual({
+      subjects: [
+        { id: 'subject-1', name: 'Cálculo I' },
+        { id: 'subject-2', name: 'Álgebra Linear' },
+      ],
+    })
+    expect(mockSaveSubject).toHaveBeenCalledTimes(2)
+    expect(mockSaveSubject).toHaveBeenCalledWith(TEST_USER_ID, parsedSubject, '', 'pdf')
+    expect(mockSaveSubject).toHaveBeenCalledWith(TEST_USER_ID, parsedSubject2, '', 'pdf')
+  })
+
+  it('retorna 400 quando array de ementas está vazio', async () => {
+    const app = await buildApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/subjects/batch',
+      payload: { subjects: [] },
+    })
+
+    expect(res.statusCode).toBe(400)
+    expect(mockSaveSubject).not.toHaveBeenCalled()
+  })
+})
+
+// ── GET /api/subjects ─────────────────────────────────────────────────────────
 
 describe('GET /api/subjects', () => {
   it('retorna 200 com a lista de ementas do usuário', async () => {
@@ -168,6 +259,8 @@ describe('GET /api/subjects', () => {
     expect(supabaseMock.from).toHaveBeenCalledWith('subjects')
   })
 })
+
+// ── GET /api/subjects/:id ─────────────────────────────────────────────────────
 
 describe('GET /api/subjects/:id', () => {
   it('retorna 200 com a ementa quando encontrada', async () => {
@@ -191,6 +284,8 @@ describe('GET /api/subjects/:id', () => {
   })
 })
 
+// ── PATCH /api/subjects/:id ───────────────────────────────────────────────────
+
 describe('PATCH /api/subjects/:id', () => {
   it('retorna 200 com os campos atualizados', async () => {
     supabaseMock.queueResult({ data: { id: 'subject-1', name: 'Cálculo I — Atualizado' }, error: null })
@@ -212,6 +307,8 @@ describe('PATCH /api/subjects/:id', () => {
     expect(res.json()).toEqual({ error: 'Ementa não encontrada' })
   })
 })
+
+// ── DELETE /api/subjects/:id ──────────────────────────────────────────────────
 
 describe('DELETE /api/subjects/:id', () => {
   it('retorna 204 ao excluir a ementa do usuário', async () => {

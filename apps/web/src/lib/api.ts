@@ -1,5 +1,9 @@
 import { createClient } from './supabase'
-import type { Plan, Subject, Exercise, CreatePlanInput, PlanCheckin, RecalibrateResult, LimitedResponse, CooldownResponse } from '@/types'
+import type { Plan, Subject, ParsedSubject, Exercise, CreatePlanInput, PlanCheckin, RecalibrateResult, LimitedResponse, CooldownResponse } from '@/types'
+
+export type SubjectParseResult =
+  | { subject: Subject; isEmentario?: never }
+  | { isEmentario: true; subjects: ParsedSubject[]; subject?: never }
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -52,15 +56,16 @@ export const api = {
 }
 
 export const subjectsApi = {
-  uploadPdf: async (file: File) => {
+  uploadPdf: async (file: File): Promise<SubjectParseResult> => {
     const authHeader = await getAuthHeader()
     const form = new FormData()
     form.append('file', file)
     const res = await fetch(`${BASE_URL}/api/subjects/upload`, { method: 'POST', headers: authHeader, body: form })
     if (!res.ok) { const err = await res.json().catch(() => ({ error: res.statusText })); throw { status: res.status, ...err } }
-    return res.json() as Promise<{ subject: Subject }>
+    return res.json() as Promise<SubjectParseResult>
   },
-  fromText: (text: string)  => request<{ subject: Subject }>('POST', '/api/subjects/text', { text }),
+  fromText: (text: string)  => request<SubjectParseResult>('POST', '/api/subjects/text', { text }),
+  batch:    (subjects: ParsedSubject[]) => request<{ subjects: Subject[] }>('POST', '/api/subjects/batch', { subjects }),
   list:     ()              => request<{ subjects: Subject[] }>('GET', '/api/subjects'),
   get:      (id: string)    => request<{ subject: Subject }>('GET', `/api/subjects/${id}`),
   patch:    (id: string, body: Partial<Pick<Subject, 'name' | 'code' | 'course' | 'university' | 'credits'>>) =>
