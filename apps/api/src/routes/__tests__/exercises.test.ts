@@ -17,6 +17,7 @@ import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify'
 const {
   mockFrom, queueResult,
   mockCheckAndIncrementApiCall, mockGenerateAndSaveExercises, mockAnswerExercise,
+  mockIsPlanOwnedByUser,
 } = vi.hoisted(() => {
   type Result = { data: unknown; error: unknown }
   const queue: Result[] = []
@@ -36,6 +37,7 @@ const {
     mockCheckAndIncrementApiCall: vi.fn(),
     mockGenerateAndSaveExercises: vi.fn(),
     mockAnswerExercise:           vi.fn(),
+    mockIsPlanOwnedByUser:        vi.fn(),
   }
 })
 
@@ -45,6 +47,10 @@ vi.mock('../../lib/supabase', () => ({
 
 vi.mock('../../lib/limits', () => ({
   checkAndIncrementApiCall: mockCheckAndIncrementApiCall,
+}))
+
+vi.mock('../../lib/plan-ownership', () => ({
+  isPlanOwnedByUser: mockIsPlanOwnedByUser,
 }))
 
 vi.mock('../../services/exerciseService', () => ({
@@ -69,16 +75,29 @@ const buildApp = async () => {
 }
 
 const VALID_BODY = {
-  plan_id:      'plan-1',
+  plan_id:      '11111111-1111-4111-8111-111111111111',
   topic:        'Derivadas',
   subject_name: 'Cálculo I',
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockIsPlanOwnedByUser.mockResolvedValue(true)
 })
 
 describe('POST /api/exercises/generate', () => {
+  it('retorna 404 sem gastar cota quando o plano não pertence ao usuário', async () => {
+    mockIsPlanOwnedByUser.mockResolvedValueOnce(false)
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/exercises/generate', payload: VALID_BODY })
+
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ error: 'Plano não encontrado.' })
+    expect(mockCheckAndIncrementApiCall).not.toHaveBeenCalled()
+    expect(mockGenerateAndSaveExercises).not.toHaveBeenCalled()
+  })
+
   it('retorna 402 com LimitedResponse quando o limite de calls foi atingido', async () => {
     queueResult({ data: { plan: 'free' }, error: null })
     mockCheckAndIncrementApiCall.mockResolvedValueOnce({

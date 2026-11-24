@@ -18,6 +18,7 @@ const {
   mockCheckSkillCooldown, mockRecordSkillUsage,
   mockCheckAndIncrementApiCall,
   mockRunCheckin, mockRunRecalibration, mockRunDiagnosis,
+  mockIsPlanOwnedByUser,
 } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockEq     = vi.fn(() => ({ single: mockSingle }))
@@ -31,6 +32,7 @@ const {
     mockRunCheckin:               vi.fn(),
     mockRunRecalibration:         vi.fn(),
     mockRunDiagnosis:             vi.fn(),
+    mockIsPlanOwnedByUser:        vi.fn(),
   }
 })
 
@@ -45,6 +47,10 @@ vi.mock('../../lib/cooldowns', () => ({
 
 vi.mock('../../lib/limits', () => ({
   checkAndIncrementApiCall: mockCheckAndIncrementApiCall,
+}))
+
+vi.mock('../../lib/plan-ownership', () => ({
+  isPlanOwnedByUser: mockIsPlanOwnedByUser,
 }))
 
 vi.mock('../../services/checkinService', () => ({
@@ -64,7 +70,7 @@ vi.mock('../../services/diagnoseService', () => ({
 import { skillsRoutes } from '../skills'
 
 const TEST_USER_ID = 'user-1'
-const TEST_PLAN_ID = 'plan-1'
+const TEST_PLAN_ID = '11111111-1111-4111-8111-111111111111'
 
 const buildApp = async () => {
   const app = Fastify()
@@ -112,9 +118,33 @@ const DIAGNOSE_BODY = {
 beforeEach(() => {
   vi.clearAllMocks()
   mockSingle.mockResolvedValue({ data: { plan: 'free' }, error: null })
+  mockIsPlanOwnedByUser.mockResolvedValue(true)
 })
 
 describe('POST /api/skills/checkin', () => {
+  it('retorna 404 sem gastar cota quando o plano não pertence ao usuário', async () => {
+    mockIsPlanOwnedByUser.mockResolvedValueOnce(false)
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/checkin', payload: CHECKIN_BODY })
+
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ error: 'Plano não encontrado.' })
+    expect(mockCheckSkillCooldown).not.toHaveBeenCalled()
+    expect(mockCheckAndIncrementApiCall).not.toHaveBeenCalled()
+    expect(mockRunCheckin).not.toHaveBeenCalled()
+  })
+
+  it('retorna 400 quando plan_id não é um UUID', async () => {
+    const app = await buildApp()
+    const res = await app.inject({
+      method: 'POST', url: '/api/skills/checkin', payload: { ...CHECKIN_BODY, plan_id: 'nao-uuid' },
+    })
+
+    expect(res.statusCode).toBe(400)
+    expect(mockIsPlanOwnedByUser).not.toHaveBeenCalled()
+  })
+
   it('retorna 429 com CooldownResponse quando em cooldown', async () => {
     mockCheckSkillCooldown.mockResolvedValueOnce({
       allowed: false,
@@ -163,11 +193,27 @@ describe('POST /api/skills/checkin', () => {
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ checkin: { trend: 'on-track' } })
+    expect(mockRunCheckin).toHaveBeenCalledWith(
+      expect.any(Object), { userId: TEST_USER_ID, planId: TEST_PLAN_ID },
+    )
     expect(mockRecordSkillUsage).toHaveBeenCalledWith(TEST_USER_ID, TEST_PLAN_ID, 'checkin')
   })
 })
 
 describe('POST /api/skills/recalibrate', () => {
+  it('retorna 404 sem gastar cota quando o plano não pertence ao usuário', async () => {
+    mockIsPlanOwnedByUser.mockResolvedValueOnce(false)
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/recalibrate', payload: RECALIBRATE_BODY })
+
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ error: 'Plano não encontrado.' })
+    expect(mockCheckSkillCooldown).not.toHaveBeenCalled()
+    expect(mockCheckAndIncrementApiCall).not.toHaveBeenCalled()
+    expect(mockRunRecalibration).not.toHaveBeenCalled()
+  })
+
   it('retorna 429 com CooldownResponse quando em cooldown', async () => {
     mockCheckSkillCooldown.mockResolvedValueOnce({
       allowed: false,

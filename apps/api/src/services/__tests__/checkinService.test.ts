@@ -2,9 +2,9 @@
  * Unit tests for apps/api/src/services/checkinService.ts
  *
  * runCheckin has two paths: Phase 1 (no planId) uses generate(); Phase 2
- * (planId provided) uses generateWithTools() with CHECKIN_TOOLS and dispatchTool.
+ * (scope provided) uses generateWithTools() with CHECKIN_TOOLS and a scoped dispatcher.
  * lib/anthropic and lib/mcp/registry are mocked. Tests verify which function is
- * called, that the planId is included in the Phase 2 prompt, and that JSON parse
+ * called, that the dispatcher is bound to the server-side scope, and that JSON parse
  * failures propagate correctly in both phases.
  */
 
@@ -12,10 +12,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const { mockGenerate, mockGenerateWithTools, mockDispatchTool } = vi.hoisted(() => ({
+const { mockGenerate, mockGenerateWithTools, mockDispatchTool, mockCreatePlanToolDispatcher } = vi.hoisted(() => ({
   mockGenerate:          vi.fn(),
   mockGenerateWithTools: vi.fn(),
   mockDispatchTool:      vi.fn(),
+  mockCreatePlanToolDispatcher: vi.fn(),
 }))
 
 vi.mock('../../lib/anthropic', () => ({
@@ -32,7 +33,7 @@ vi.mock('../../lib/mcp/supabaseTools', () => ({
 }))
 
 vi.mock('../../lib/mcp/registry', () => ({
-  dispatchTool: mockDispatchTool,
+  createPlanToolDispatcher: mockCreatePlanToolDispatcher,
 }))
 
 // ── Imports após mock ─────────────────────────────────────────────────────────
@@ -64,7 +65,12 @@ const baseCheckinResult = {
   action_rationale:        'Progresso consistente.',
 }
 
-beforeEach(() => { vi.clearAllMocks() })
+const PLAN_TOOL_SCOPE = { userId: 'user-1', planId: 'plan-xyz' }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockCreatePlanToolDispatcher.mockReturnValue(mockDispatchTool)
+})
 
 // ── runCheckin (Phase 1 — sem planId) ─────────────────────────────────────────
 
@@ -106,27 +112,29 @@ describe('runCheckin', () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce(JSON.stringify(baseCheckinResult))
       // when
-      await runCheckin(baseCheckinInput, 'plan-1')
+      await runCheckin(baseCheckinInput, PLAN_TOOL_SCOPE)
       // then
       expect(mockGenerateWithTools).toHaveBeenCalledTimes(1)
       expect(mockGenerate).not.toHaveBeenCalled()
     })
 
-    it('inclui o planId no prompt do usuário enviado para generateWithTools()', async () => {
+    it('vincula o dispatcher ao escopo do servidor sem expor o planId no prompt', async () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce(JSON.stringify(baseCheckinResult))
       // when
-      await runCheckin(baseCheckinInput, 'plan-xyz')
+      await runCheckin(baseCheckinInput, PLAN_TOOL_SCOPE)
       // then
-      const [, userPrompt] = mockGenerateWithTools.mock.calls[0]
-      expect(userPrompt).toContain('plan-xyz')
+      const [, userPrompt, , toolExecutor] = mockGenerateWithTools.mock.calls[0]
+      expect(mockCreatePlanToolDispatcher).toHaveBeenCalledWith(PLAN_TOOL_SCOPE)
+      expect(toolExecutor).toBe(mockDispatchTool)
+      expect(userPrompt).not.toContain(PLAN_TOOL_SCOPE.planId)
     })
 
     it('chama generateWithTools() com maxIterations 3', async () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce(JSON.stringify(baseCheckinResult))
       // when
-      await runCheckin(baseCheckinInput, 'plan-1')
+      await runCheckin(baseCheckinInput, PLAN_TOOL_SCOPE)
       // then
       const [, , , , , maxIterations] = mockGenerateWithTools.mock.calls[0]
       expect(maxIterations).toBe(3)
@@ -136,7 +144,7 @@ describe('runCheckin', () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce('não é json')
       // when / then
-      await expect(runCheckin(baseCheckinInput, 'plan-1'))
+      await expect(runCheckin(baseCheckinInput, PLAN_TOOL_SCOPE))
         .rejects.toThrow('Falha ao parsear check-in da IA. Tente novamente.')
     })
   })

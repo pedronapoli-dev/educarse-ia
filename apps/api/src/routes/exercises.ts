@@ -4,17 +4,22 @@ import { supabase } from '../lib/supabase'
 import { getUserId } from '../plugins/auth'
 import { generateAndSaveExercises, answerExercise } from '../services/exerciseService'
 import { checkAndIncrementApiCall } from '../lib/limits'
+import { isPlanOwnedByUser } from '../lib/plan-ownership'
 
 export const exercisesRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { plan_id: string; topic: string; subject_name: string; course?: string; count?: number; bloom_level?: string; plan_phase?: string } }>('/generate', {
     preHandler: [fastify.authenticate],
     schema: { body: { type: 'object', required: ['plan_id', 'topic', 'subject_name'],
-      properties: { plan_id: { type: 'string' }, topic: { type: 'string' }, subject_name: { type: 'string' }, course: { type: 'string' },
+      properties: { plan_id: { type: 'string', format: 'uuid' }, topic: { type: 'string' }, subject_name: { type: 'string' }, course: { type: 'string' },
         count: { type: 'integer', minimum: 1, maximum: 5 },
         bloom_level: { type: 'string', enum: ['lembrar', 'entender', 'aplicar', 'analisar', 'avaliar', 'criar'] },
         plan_phase: { type: 'string', enum: ['inicial', 'intermediaria', 'final'] } } } },
   }, async (request, reply) => {
     const userId = getUserId(request)
+
+    if (!(await isPlanOwnedByUser(userId, request.body.plan_id))) {
+      return reply.status(404).send({ error: 'Plano não encontrado.' })
+    }
 
     const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single()
     const callResult = await checkAndIncrementApiCall(userId, (user?.plan ?? 'free') as UserPlan)

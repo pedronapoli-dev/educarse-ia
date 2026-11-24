@@ -256,15 +256,16 @@ describe('completeSession', () => {
     expect(updatedData.status).toBe('completed')
   })
 
-  it('retorna sem erro quando o plano não é encontrado após a inserção da sessão', async () => {
-    // given: study_sessions insert succeeds but plans select returns null
+  it('retorna false sem inserir sessão quando o plano não pertence ao usuário', async () => {
+    // given: plans select scoped by user returns null
     mockChain.then = vi.fn(
       (ok?: (v: { data: unknown; error: unknown }) => unknown) =>
         Promise.resolve({ data: null, error: null }).then(ok)
     )
     mockChain.single = vi.fn(() => Promise.resolve({ data: null, error: null }))
-    // when / then: should not throw
-    await expect(completeSession('u1', 'plan-1', 1, 1)).resolves.toBeUndefined()
+    // when / then
+    await expect(completeSession('u1', 'plan-1', 1, 1)).resolves.toBe(false)
+    expect(mockChain.insert).not.toHaveBeenCalled()
     expect(mockChain.update).not.toHaveBeenCalled()
   })
 })

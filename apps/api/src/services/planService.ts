@@ -134,15 +134,15 @@ export async function generateAndSavePlan(input: PlanInput) {
 
 export async function completeSession(
   userId: string, planId: string, week: number, day: number, durationActual?: number
-) {
+): Promise<boolean> {
+  const { data: plan } = await supabase
+    .from('plans').select('schedule').eq('id', planId).eq('user_id', userId).single()
+  if (!plan) return false
+
   await supabase.from('study_sessions').insert({
     user_id: userId, plan_id: planId, week, day, topic: '',
     duration_actual: durationActual, completed: true, completed_at: new Date().toISOString(),
   })
-
-  const { data: plan } = await supabase
-    .from('plans').select('schedule').eq('id', planId).eq('user_id', userId).single()
-  if (!plan) return
 
   const schedule = plan.schedule as ScheduleWeek[]
   const weekObj  = schedule.find(w => w.week === week)
@@ -155,4 +155,6 @@ export async function completeSession(
   await supabase.from('plans')
     .update({ schedule, progress, status: progress === 100 ? 'completed' : 'active' })
     .eq('id', planId).eq('user_id', userId)
+
+  return true
 }

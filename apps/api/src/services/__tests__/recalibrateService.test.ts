@@ -15,6 +15,12 @@ const { mockGenerate, mockGenerateWithTools } = vi.hoisted(() => ({
   mockGenerateWithTools: vi.fn(),
 }))
 
+const { mockCreatePlanToolDispatcher } = vi.hoisted(() => ({
+  mockCreatePlanToolDispatcher: vi.fn(() => vi.fn()),
+}))
+
+const PLAN_TOOL_SCOPE = { userId: 'user-1', planId: 'plan-abc' }
+
 vi.mock('../../lib/anthropic', () => ({
   generate:          mockGenerate,
   generateWithTools: mockGenerateWithTools,
@@ -29,7 +35,7 @@ vi.mock('../../lib/mcp/supabaseTools', () => ({
 }))
 
 vi.mock('../../lib/mcp/registry', () => ({
-  dispatchTool: vi.fn(),
+  createPlanToolDispatcher: mockCreatePlanToolDispatcher,
 }))
 
 // ── Imports após mock ─────────────────────────────────────────────────────────
@@ -102,27 +108,28 @@ describe('runRecalibration', () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce(JSON.stringify(baseResult))
       // when
-      await runRecalibration(baseInput, 'plan-1')
+      await runRecalibration(baseInput, PLAN_TOOL_SCOPE)
       // then
       expect(mockGenerateWithTools).toHaveBeenCalledTimes(1)
       expect(mockGenerate).not.toHaveBeenCalled()
     })
 
-    it('inclui o planId no prompt enviado para generateWithTools()', async () => {
+    it('vincula o dispatcher ao escopo do servidor sem expor o planId no prompt', async () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce(JSON.stringify(baseResult))
       // when
-      await runRecalibration(baseInput, 'plan-abc')
+      await runRecalibration(baseInput, PLAN_TOOL_SCOPE)
       // then
       const [, userPrompt] = mockGenerateWithTools.mock.calls[0]
-      expect(userPrompt).toContain('plan-abc')
+      expect(mockCreatePlanToolDispatcher).toHaveBeenCalledWith(PLAN_TOOL_SCOPE)
+      expect(userPrompt).not.toContain(PLAN_TOOL_SCOPE.planId)
     })
 
     it('chama generateWithTools() com maxIterations 3', async () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce(JSON.stringify(baseResult))
       // when
-      await runRecalibration(baseInput, 'plan-1')
+      await runRecalibration(baseInput, PLAN_TOOL_SCOPE)
       // then
       const [, , , , , maxIterations] = mockGenerateWithTools.mock.calls[0]
       expect(maxIterations).toBe(3)
@@ -132,7 +139,7 @@ describe('runRecalibration', () => {
       // given
       mockGenerateWithTools.mockResolvedValueOnce('não é json')
       // when / then
-      await expect(runRecalibration(baseInput, 'plan-1'))
+      await expect(runRecalibration(baseInput, PLAN_TOOL_SCOPE))
         .rejects.toThrow('Falha ao parsear recalibração da IA. Tente novamente.')
     })
   })

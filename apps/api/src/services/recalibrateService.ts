@@ -1,18 +1,18 @@
 import { generate, generateWithTools, parseJsonResponse } from '../lib/anthropic'
 import { RECALIBRATE_SYSTEM, recalibratePrompt, type RecalibrateInput } from '../lib/prompts'
-import { RECALIBRATE_TOOLS } from '../lib/mcp/supabaseTools'
-import { dispatchTool } from '../lib/mcp/registry'
+import { RECALIBRATE_TOOLS, type PlanToolScope } from '../lib/mcp/supabaseTools'
+import { createPlanToolDispatcher } from '../lib/mcp/registry'
 import type { RecalibrateResult } from '@educarseia/types'
 
-// planId absent  → Phase 1: manual data via generate()
-// planId present → Phase 2: Claude fetches plan state from Supabase via MCP
-export const runRecalibration = async (input: RecalibrateInput, planId?: string): Promise<RecalibrateResult> => {
-  const response = planId
+// scope absent  → Phase 1: manual data via generate()
+// scope present → Phase 2: Claude fetches plan state from Supabase via MCP
+export const runRecalibration = async (input: RecalibrateInput, scope?: PlanToolScope): Promise<RecalibrateResult> => {
+  const response = scope
     ? await generateWithTools(
         RECALIBRATE_SYSTEM,
-        `${recalibratePrompt(input)}\n\nPlan ID for data retrieval: ${planId}`,
+        recalibratePrompt(input),
         RECALIBRATE_TOOLS,
-        dispatchTool,
+        createPlanToolDispatcher(scope),
         2048,
         3,
       )

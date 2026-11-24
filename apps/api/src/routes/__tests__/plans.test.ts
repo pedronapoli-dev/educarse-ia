@@ -156,25 +156,39 @@ describe('GET /api/plans/:id', () => {
 
 describe('PATCH /api/plans/:id/session', () => {
   it('retorna 200 e chama completeSession com userId, planId, week, day e duration_actual', async () => {
-    mockCompleteSession.mockResolvedValueOnce(undefined)
+    mockCompleteSession.mockResolvedValueOnce(true)
 
     const app = await buildApp()
     const res = await app.inject({
       method: 'PATCH',
-      url: '/api/plans/plan-1/session',
+      url: '/api/plans/11111111-1111-4111-8111-111111111111/session',
       payload: { week: 2, day: 3, duration_actual: 90 },
     })
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ ok: true })
-    expect(mockCompleteSession).toHaveBeenCalledWith(TEST_USER_ID, 'plan-1', 2, 3, 90)
+    expect(mockCompleteSession).toHaveBeenCalledWith(TEST_USER_ID, '11111111-1111-4111-8111-111111111111', 2, 3, 90)
+  })
+
+  it('retorna 404 quando o plano não pertence ao usuário', async () => {
+    mockCompleteSession.mockResolvedValueOnce(false)
+
+    const app = await buildApp()
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/plans/11111111-1111-4111-8111-111111111111/session',
+      payload: { week: 2, day: 3 },
+    })
+
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ error: 'Plano não encontrado.' })
   })
 
   it('retorna 400 quando week ou day não são inteiros', async () => {
     const app = await buildApp()
     const res = await app.inject({
       method: 'PATCH',
-      url: '/api/plans/plan-1/session',
+      url: '/api/plans/11111111-1111-4111-8111-111111111111/session',
       payload: { week: 'dois', day: 3 },
     })
 
