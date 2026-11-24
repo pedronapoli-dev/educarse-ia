@@ -58,6 +58,33 @@ export interface Subject {
   created_at:          string
 }
 
+// ─── Deterministic extraction types ──────────────────────────────────────────
+
+/** Confidence level assigned by the rule-based extractor per field. */
+export type ExtractionConfidence = 'high' | 'medium' | 'low' | 'missing'
+
+/**
+ * Result of the deterministic ementa parser — partially filled.
+ * Fields absent here are missing from the document or below confidence threshold.
+ * Claude receives this to: (1) fill gaps, (2) add pedagogical analysis.
+ */
+export interface PartialParsedSubject {
+  name?:           string
+  code?:           string
+  course?:         string
+  university?:     string
+  credits?:        number
+  workload_hours?: number
+  description?:    string
+  topics?:         string[]
+  bibliography?:   string[]
+  prerequisites?:  string[]
+  /** Confidence per field — Claude ignores 'high' fields, focuses on the rest */
+  _confidence:     Partial<Record<string, ExtractionConfidence>>
+  /** Raw section text by section name — fed to Claude for gap-filling */
+  _rawSections:    Record<string, string>
+}
+
 export interface ParsedSubject {
   name:               string
   code:               string | null
@@ -73,6 +100,23 @@ export interface ParsedSubject {
   difficulty_level?:   'acessível' | 'desafiador' | 'avançado'
   zdp_entry_point?:    string                    // Knowledge required before starting
   topic_dependencies?: Record<string, string[]>  // topic → its internal prerequisites
+}
+
+// ─── Ementário (documento com várias disciplinas) ────────────────────────────
+
+/** Teto de disciplinas de um ementário processadas pela IA em um único plano de estudos. */
+export const MAX_EMENTARIO_SELECTION = 5
+
+/** Tamanho máximo do trecho de uma disciplina enviado para a completude por IA. */
+export const MAX_EMENTARIO_ENTRY_CHARS = 12_000
+
+/** Disciplina identificada sem IA. `source_text` volta à API quando o aluno a escolhe. */
+export interface EmentarioEntry {
+  index:          number
+  name:           string
+  code:           string | null
+  workload_hours: number | null
+  source_text:    string
 }
 
 // ── Pedagogical progression types ────────────────────────────────────────────

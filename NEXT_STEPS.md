@@ -126,7 +126,7 @@ sem sessão, `/conta` + modal de exclusão, link do Navbar.
 
 ## ✅ Concluído nesta sessão (5) — SEO/shareability + comunidade Discord
 
-- **`/termos`**: placeholders `[CPF do responsável]` → `860.763.795-96` e
+- **`/termos`**: placeholders `[CPF do responsável]` → valor real do responsável e
   `[comarca]` → `Salvador/Bahia` preenchidos.
 - **SEO & shareability**: `lib/constants.ts` ganhou `SITE_URL`
   (`https://educarse-ia.com.br`); `layout.tsx` ganhou `metadataBase` + OG/Twitter

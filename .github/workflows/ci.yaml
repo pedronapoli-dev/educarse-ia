@@ -7,30 +7,33 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# ── Shared env ──────────────────────────────────────────────────────────────
+# Placeholder values — NOT real credentials. Required because
+# createClient() is called at module-load time and throws if these are
+# undefined (no .env / .env.local exist in CI).
+env:
+  SUPABASE_URL: https://placeholder.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+  SUPABASE_ANON_KEY: placeholder-anon-key
+  JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+  ANTHROPIC_API_KEY: sk-ant-placeholder
+  STRIPE_SECRET_KEY: sk_test_placeholder
+  STRIPE_WEBHOOK_SECRET: whsec_placeholder
+  STRIPE_PRICE_ID_BASIC: price_placeholder
+  STRIPE_PRICE_ID_PRO: price_placeholder
+  STRIPE_PRICE_ID_MAX: price_placeholder
+  STRIPE_PRICE_ID_BETA: price_placeholder
+  FRONTEND_URL: http://localhost:3000
+  NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+  NEXT_PUBLIC_API_URL: http://localhost:3001
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+
 jobs:
-  ci:
+  # ── Job 1: Unit + route tests (no Supabase needed) ────────────────────────
+  unit-tests:
+    name: Unit & Route Tests
     runs-on: ubuntu-latest
-    env:
-      # Placeholder values — NOT real credentials. Required because
-      # apps/api/src/lib/supabase.ts and apps/web/src/lib/supabase.ts call
-      # createClient() at module-load time, which throws immediately if
-      # these are undefined (no .env / .env.local exist in CI).
-      SUPABASE_URL: https://placeholder.supabase.co
-      SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
-      SUPABASE_ANON_KEY: placeholder-anon-key
-      JWT_SECRET: placeholder-jwt-secret
-      ANTHROPIC_API_KEY: sk-ant-placeholder
-      STRIPE_SECRET_KEY: sk_test_placeholder
-      STRIPE_WEBHOOK_SECRET: whsec_placeholder
-      STRIPE_PRICE_ID_BASIC: price_placeholder
-      STRIPE_PRICE_ID_PRO: price_placeholder
-      STRIPE_PRICE_ID_MAX: price_placeholder
-      STRIPE_PRICE_ID_BETA: price_placeholder
-      FRONTEND_URL: http://localhost:3000
-      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-      NEXT_PUBLIC_API_URL: http://localhost:3001
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
     steps:
       - uses: actions/checkout@v4
 
@@ -40,13 +43,104 @@ jobs:
           cache: npm
 
       - run: npm ci
-      # packages/types is a composite TS project reference consumed by
-      # apps/api and apps/web; tsc -p (type-check) requires its dist/
-      # to already be built (TS6305), so build it before type-check.
       - run: npm run build --workspace=packages/types
       - run: npm run type-check
-      # lint: skipped for now — broken on main independent of CI
-      # (ESLint 9 flat-config migration + Next 16 removed `next lint`).
-      # Tracked in NEXT_STEPS.md.
-      - run: npm run test
+      - run: npm run lint
+      - run: npm run test      # vitest unit + route (mocked)
       - run: npm run build
+
+  # ── Job 2: Integration tests (Supabase local via Docker) ─────────────────
+  integration-tests:
+    name: Integration Tests (Supabase)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Start Supabase local stack
+        uses: ./.github/actions/setup-supabase
+
+      - run: npm ci
+
+      - run: npm run build --workspace=packages/types
+
+      - name: Run integration tests
+        run: npm run test:integration --workspace=apps/api
+        env:
+          # Override real Supabase keys from the step above
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ANON_KEY: ${{ env.SUPABASE_ANON_KEY }}
+
+  # ── Job 3: Playwright E2E tests ────────────────────────────────────────────
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    # E2E depends on a clean build passing first
+    needs: [unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Start Supabase local stack
+        uses: ./.github/actions/setup-supabase
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+
+      - name: Build packages/types
+        run: npm run build --workspace=packages/types
+
+      - name: Run E2E tests
+        run: npm run test:e2e --workspace=apps/web
+        env:
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # CI flag para retries automáticos no playwright.config.ts
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos
+          path: apps/web/test-results/
+          retention-days: 7
+
+  # ── Stable required status check ──────────────────────────────────────────
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [unit-tests, integration-tests, e2e]
+    steps:
+      - name: Require every job to succeed
+        env:
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+        run: |
+          test "$UNIT_RESULT" = "success"
+          test "$INTEGRATION_RESULT" = "success"
+          test "$E2E_RESULT" = "success"

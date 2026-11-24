@@ -112,7 +112,7 @@ export const DayItem = ({
         {!day.completed && (
           <button
             onClick={onPractice}
-            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-md bg-accent-soft px-3 py-1.5 text-xs font-semibold text-on-accent-soft ring-1 ring-inset ring-terra-200 transition-colors hover:bg-terra-200"
+            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-md bg-accent-soft px-3 py-1.5 text-xs font-semibold text-on-accent-soft ring-1 ring-inset ring-accent-soft-hover transition-colors hover:bg-accent-soft-hover"
           >
             <Zap size={11} /> Praticar
           </button>

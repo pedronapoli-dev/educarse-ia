@@ -1,10 +1,11 @@
 /**
- * Integration tests for POST /api/skills/checkin e /recalibrate
- * (apps/api/src/routes/skills.ts)
+ * Integration tests for apps/api/src/routes/skills.ts
  *
- * Testa a ordem de verificação (cooldown 429 → limite 402 → execução 200) e
- * os shapes exatos de CooldownResponse / LimitedResponse, mockando supabase,
- * lib/cooldowns, lib/limits e os services de checkin/recalibrate.
+ * checkin/recalibrate: testa a ordem de verificação (cooldown 429 → limite
+ * 402 → execução 200) e os shapes exatos de CooldownResponse / LimitedResponse.
+ * diagnose: testa o wiring com checkAndIncrementApiCall (402 + LimitedResponse,
+ * 200 com/sem warning de 80%). Mocka supabase, lib/cooldowns, lib/limits e os
+ * services de diagnose/checkin/recalibrate.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -16,7 +17,8 @@ const {
   mockSingle, mockFrom,
   mockCheckSkillCooldown, mockRecordSkillUsage,
   mockCheckAndIncrementApiCall,
-  mockRunCheckin, mockRunRecalibration,
+  mockRunCheckin, mockRunRecalibration, mockRunDiagnosis,
+  mockIsPlanOwnedByUser,
 } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockEq     = vi.fn(() => ({ single: mockSingle }))
@@ -29,6 +31,8 @@ const {
     mockCheckAndIncrementApiCall: vi.fn(),
     mockRunCheckin:               vi.fn(),
     mockRunRecalibration:         vi.fn(),
+    mockRunDiagnosis:             vi.fn(),
+    mockIsPlanOwnedByUser:        vi.fn(),
   }
 })
 
@@ -45,6 +49,10 @@ vi.mock('../../lib/limits', () => ({
   checkAndIncrementApiCall: mockCheckAndIncrementApiCall,
 }))
 
+vi.mock('../../lib/plan-ownership', () => ({
+  isPlanOwnedByUser: mockIsPlanOwnedByUser,
+}))
+
 vi.mock('../../services/checkinService', () => ({
   runCheckin: mockRunCheckin,
 }))
@@ -54,7 +62,7 @@ vi.mock('../../services/recalibrateService', () => ({
 }))
 
 vi.mock('../../services/diagnoseService', () => ({
-  runDiagnosis: vi.fn(),
+  runDiagnosis: mockRunDiagnosis,
 }))
 
 // ── Imports após mock ─────────────────────────────────────────────────────
@@ -62,7 +70,7 @@ vi.mock('../../services/diagnoseService', () => ({
 import { skillsRoutes } from '../skills'
 
 const TEST_USER_ID = 'user-1'
-const TEST_PLAN_ID = 'plan-1'
+const TEST_PLAN_ID = '11111111-1111-4111-8111-111111111111'
 
 const buildApp = async () => {
   const app = Fastify()
@@ -98,12 +106,45 @@ const RECALIBRATE_BODY = {
   current_scaffolding: 'alto' as const,
 }
 
+const DIAGNOSE_BODY = {
+  subject_name:           'Cálculo I',
+  topics:                 ['Limites', 'Derivadas'],
+  prior_knowledge_level:  3,
+  learning_formats:       ['video', 'texto'],
+  application_context:    'Engenharia',
+  weekly_hours:           6,
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
   mockSingle.mockResolvedValue({ data: { plan: 'free' }, error: null })
+  mockIsPlanOwnedByUser.mockResolvedValue(true)
 })
 
 describe('POST /api/skills/checkin', () => {
+  it('retorna 404 sem gastar cota quando o plano não pertence ao usuário', async () => {
+    mockIsPlanOwnedByUser.mockResolvedValueOnce(false)
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/checkin', payload: CHECKIN_BODY })
+
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ error: 'Plano não encontrado.' })
+    expect(mockCheckSkillCooldown).not.toHaveBeenCalled()
+    expect(mockCheckAndIncrementApiCall).not.toHaveBeenCalled()
+    expect(mockRunCheckin).not.toHaveBeenCalled()
+  })
+
+  it('retorna 400 quando plan_id não é um UUID', async () => {
+    const app = await buildApp()
+    const res = await app.inject({
+      method: 'POST', url: '/api/skills/checkin', payload: { ...CHECKIN_BODY, plan_id: 'nao-uuid' },
+    })
+
+    expect(res.statusCode).toBe(400)
+    expect(mockIsPlanOwnedByUser).not.toHaveBeenCalled()
+  })
+
   it('retorna 429 com CooldownResponse quando em cooldown', async () => {
     mockCheckSkillCooldown.mockResolvedValueOnce({
       allowed: false,
@@ -152,11 +193,27 @@ describe('POST /api/skills/checkin', () => {
 
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ checkin: { trend: 'on-track' } })
+    expect(mockRunCheckin).toHaveBeenCalledWith(
+      expect.any(Object), { userId: TEST_USER_ID, planId: TEST_PLAN_ID },
+    )
     expect(mockRecordSkillUsage).toHaveBeenCalledWith(TEST_USER_ID, TEST_PLAN_ID, 'checkin')
   })
 })
 
 describe('POST /api/skills/recalibrate', () => {
+  it('retorna 404 sem gastar cota quando o plano não pertence ao usuário', async () => {
+    mockIsPlanOwnedByUser.mockResolvedValueOnce(false)
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/recalibrate', payload: RECALIBRATE_BODY })
+
+    expect(res.statusCode).toBe(404)
+    expect(res.json()).toEqual({ error: 'Plano não encontrado.' })
+    expect(mockCheckSkillCooldown).not.toHaveBeenCalled()
+    expect(mockCheckAndIncrementApiCall).not.toHaveBeenCalled()
+    expect(mockRunRecalibration).not.toHaveBeenCalled()
+  })
+
   it('retorna 429 com CooldownResponse quando em cooldown', async () => {
     mockCheckSkillCooldown.mockResolvedValueOnce({
       allowed: false,
@@ -206,5 +263,54 @@ describe('POST /api/skills/recalibrate', () => {
     expect(res.statusCode).toBe(200)
     expect(res.json()).toEqual({ recalibration: { newScaffolding: 'alto' } })
     expect(mockRecordSkillUsage).toHaveBeenCalledWith(TEST_USER_ID, TEST_PLAN_ID, 'recalibrate')
+  })
+})
+
+describe('POST /api/skills/diagnose', () => {
+  it('retorna 402 com LimitedResponse quando o limite de calls foi atingido', async () => {
+    mockCheckAndIncrementApiCall.mockResolvedValueOnce({
+      allowed: false,
+      limited: { limited: true, upgrade_url: '/planos', usage: { used: 10, max: 10, percent: 100 } },
+    })
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/diagnose', payload: DIAGNOSE_BODY })
+
+    expect(res.statusCode).toBe(402)
+    expect(res.json()).toEqual({
+      limited: true,
+      upgrade_url: '/planos',
+      usage: { used: 10, max: 10, percent: 100 },
+    })
+    expect(mockRunDiagnosis).not.toHaveBeenCalled()
+  })
+
+  it('retorna 200 com o diagnóstico quando dentro do limite', async () => {
+    mockCheckAndIncrementApiCall.mockResolvedValueOnce({ allowed: true })
+    mockRunDiagnosis.mockResolvedValueOnce({ zdpLevel: 'foundation' })
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/diagnose', payload: DIAGNOSE_BODY })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ diagnostic: { zdpLevel: 'foundation' } })
+  })
+
+  it('retorna 200 com warning quando uso atinge 80%', async () => {
+    mockCheckAndIncrementApiCall.mockResolvedValueOnce({
+      allowed: true,
+      warning: { warning: true, usage: { used: 8, max: 10, percent: 80 } },
+    })
+    mockRunDiagnosis.mockResolvedValueOnce({ zdpLevel: 'foundation' })
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: '/api/skills/diagnose', payload: DIAGNOSE_BODY })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({
+      diagnostic: { zdpLevel: 'foundation' },
+      warning: true,
+      usage: { used: 8, max: 10, percent: 80 },
+    })
   })
 })

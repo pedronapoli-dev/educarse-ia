@@ -1,0 +1,36 @@
+UNIVERSIDADE DE SÃO PAULO — INSTITUTO DE MATEMÁTICA E ESTATÍSTICA
+Disciplina: Cálculo I — MAT0121
+Curso: Bacharelado em Ciência da Computação
+Créditos: 6 | Carga Horária: 90h | Semestre: 1º
+
+EMENTA:
+Números reais. Funções reais de uma variável real. Limites e continuidade. Derivada e suas aplicações. Integral de Riemann.
+
+OBJETIVOS:
+Capacitar o aluno a compreender e aplicar os conceitos fundamentais do cálculo diferencial e integral.
+
+CONTEÚDO PROGRAMÁTICO:
+1. Conjuntos de números reais: operações, desigualdades, valor absoluto
+2. Funções: definição, domínio, imagem, gráfico
+3. Funções elementares: polinomiais, racionais, trigonométricas, exponenciais, logarítmicas
+4. Limites: definição, propriedades, limites laterais
+5. Continuidade: definição, teorema do valor intermediário
+6. Derivada: definição, interpretação geométrica, regras de derivação
+7. Regra da cadeia e derivadas de funções implícitas
+8. Máximos e mínimos: critérios de primeira e segunda derivada
+9. Teorema de Lagrange (valor médio) e suas consequências
+10. Esboço de gráficos usando derivadas
+11. Integral de Riemann: definição, propriedades
+12. Teorema fundamental do cálculo
+13. Técnicas de integração: substituição, integração por partes
+
+BIBLIOGRAFIA BÁSICA:
+STEWART, James. Cálculo. Vol. 1. 8ª ed. São Paulo: Cengage Learning, 2016.
+FLEMMING, Diva Marília; GONÇALVES, Mirian Buss. Cálculo A. 6ª ed. São Paulo: Pearson, 2007.
+
+BIBLIOGRAFIA COMPLEMENTAR:
+APOSTOL, Tom M. Calculus. Vol. 1. 2ª ed. New York: Wiley, 1967.
+SPIVAK, Michael. Calculus. 4ª ed. Houston: Publish or Perish, 2008.
+
+PRÉ-REQUISITOS:
+Matemática do Ensino Médio: funções, trigonometria, geometria analítica básica.

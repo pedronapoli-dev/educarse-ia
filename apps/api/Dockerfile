@@ -23,6 +23,14 @@ FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+# OCR support for image-based PDFs (scanned ementas)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    tesseract-ocr-por \
+    tesseract-ocr-osd \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy root workspace files for npm resolution
 COPY package.json package-lock.json ./
 

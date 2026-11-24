@@ -23,47 +23,130 @@ export const PROMPTS_VERSION = '3.0.0'
 export const PARSE_SUBJECT_SYSTEM = `
 Você é um especialista em currículos universitários brasileiros com formação em pedagogia instrucional.
 
-Além de extrair informações factuais da ementa, você realiza uma análise pedagógica inicial:
-- Avalia o nível de dificuldade da disciplina considerando os tópicos e pré-requisitos
-- Identifica o ponto de entrada ZDP: o que o aluno precisa dominar ANTES de começar esta disciplina
-- Mapeia dependências entre os próprios tópicos da ementa (qual tópico depende de qual)
+Seu papel é identificar UMA ou MÚLTIPLAS ementas em um documento e extrair informações estruturadas de cada uma.
 
-Responda APENAS com JSON válido, sem texto adicional, sem markdown.
+Além de extrair informações factuais, realize análise pedagógica inicial:
+- Avalie o nível de dificuldade de cada disciplina considerando tópicos e pré-requisitos
+- Identifique o ponto de entrada ZDP: o que o aluno precisa dominar ANTES de começar
+- Mapeie dependências internas entre os tópicos da ementa
+
+Responda SEMPRE com um array JSON válido (mesmo que haja apenas uma ementa), sem texto adicional, sem markdown.
 `.trim()
 
-export function parseSubjectPrompt(rawText: string): string {
-  return `
-Extraia as informações da ementa abaixo e retorne JSON com esta estrutura:
-
-{
-  "name": "Nome da disciplina",
-  "code": "Código (ex: MAT0122) ou null",
-  "course": "Nome do curso ou null se não encontrado",
-  "university": "Nome da instituição ou null se não encontrado",
-  "credits": número_ou_null,
-  "workload_hours": horas_totais_ou_null,
-  "description": "Texto descritivo da ementa",
-  "topics": ["Tópico 1", "Tópico 2"],
-  "bibliography": ["Referência 1", "Referência 2"],
-  "prerequisites": ["Pré-requisito externo 1"],
-  "difficulty_level": "acessível | desafiador | avançado",
-  "zdp_entry_point": "Descreva em 1-2 frases o que o aluno precisa saber antes de começar",
-  "topic_dependencies": {
-    "Tópico B": ["Tópico A"],
-    "Tópico C": ["Tópico A", "Tópico B"]
+const SUBJECT_SCHEMA = `[
+  {
+    "name": "Nome da disciplina",
+    "code": "Código (ex: MAT0122) ou null",
+    "course": "Nome do curso ou null",
+    "university": "Nome da instituição ou null",
+    "credits": número_ou_null,
+    "workload_hours": horas_totais_ou_null,
+    "description": "Texto descritivo da ementa",
+    "topics": ["Tópico 1", "Tópico 2"],
+    "bibliography": ["Referência 1", "Referência 2"],
+    "prerequisites": ["Pré-requisito externo 1"],
+    "difficulty_level": "acessível | desafiador | avançado",
+    "zdp_entry_point": "O que o aluno precisa saber antes de começar (1-2 frases)",
+    "topic_dependencies": { "Tópico B": ["Tópico A"] }
   }
-}
+]`
 
-Regras:
+const SUBJECT_RULES = `Regras:
+- Retorne SEMPRE um array, mesmo com uma única ementa
 - Se um campo não existir, use null (não invente)
 - topics: granularidade de 1-2h de estudo; extraia da ementa descritiva, não da bibliografia
 - topic_dependencies: dependências INTERNAS entre tópicos da mesma ementa; use {} se não houver
 - difficulty_level: "acessível" (aluno médio acompanha), "desafiador" (exige esforço intenso), "avançado" (base sólida prévia)
 - Tente inferir course e university de qualquer pista no texto
-- Retorne SOMENTE o JSON
+- Se o documento contiver múltiplas ementas/disciplinas, retorne uma entrada por disciplina
+- Retorne SOMENTE o array JSON`
+
+export const PARSE_SUBJECT_PDF_PROMPT = `
+Analise o documento PDF acima. Pode ser uma única ementa ou um Ementário (múltiplas disciplinas).
+
+Retorne um array JSON com a estrutura abaixo para cada ementa encontrada:
+${SUBJECT_SCHEMA}
+
+${SUBJECT_RULES}
+`.trim()
+
+export function parseSubjectPrompt(rawText: string): string {
+  return `
+Extraia as informações da ementa abaixo e retorne um array JSON com esta estrutura:
+${SUBJECT_SCHEMA}
+
+${SUBJECT_RULES}
 
 Texto da ementa:
 ${rawText}
+`.trim()
+}
+
+// ─────────────────────────────────────────────────────────────
+// SEMANTIC COMPLETION (novo pipeline — parser determinístico primeiro)
+//
+// Recebe um PartialParsedSubject já processado por heurísticas e:
+//   1. Completa campos ausentes ou de baixa confiança
+//   2. Realiza a análise pedagógica que nenhum parser consegue fazer:
+//      difficulty_level, zdp_entry_point, topic_dependencies
+//
+// Input: ~2K tokens (vs ~14K–160K do pipeline anterior)
+// ─────────────────────────────────────────────────────────────
+
+export const SEMANTIC_COMPLETION_SYSTEM = `
+Você é um especialista em currículos universitários brasileiros com formação em pedagogia instrucional.
+
+Um parser determinístico já extraiu os campos estruturais da ementa (código, carga horária, tópicos listados, bibliografia, etc.). Sua tarefa tem DOIS focos:
+
+1. COMPLETAR: Preencher apenas os campos ausentes ou com baixa confiança. Não altere campos já marcados como "high" — confie no parser para esses.
+
+2. ANALISAR (sua responsabilidade exclusiva):
+   - difficulty_level: avalie a densidade e profundidade real dos tópicos
+   - zdp_entry_point: o que o aluno PRECISA dominar antes de começar (1-2 frases concretas)
+   - topic_dependencies: mapeie quais tópicos dependem de quais DENTRO desta ementa
+
+Responda SEMPRE com um array JSON válido, sem texto adicional, sem markdown.
+`.trim()
+
+export function semanticCompletionPrompt(
+  partial: import('@educarseia/types').PartialParsedSubject,
+  expectedCount = 1
+): string {
+  const gaps = Object.entries(partial._confidence)
+    .filter(([, c]) => c === 'missing' || c === 'low')
+    .map(([k]) => k)
+
+  // Campos já resolvidos com alta confiança — informar à IA para não retrabalhar
+  const highConfidence = Object.entries(partial._confidence)
+    .filter(([, c]) => c === 'high')
+    .map(([k]) => k)
+
+  // Conteúdo das seções brutas — apenas o necessário para os gaps
+  const rawContext = Object.entries(partial._rawSections)
+    .filter(([key, val]) => val.trim().length > 0 && key !== '_header' ||
+            (key === '_header' && gaps.some(g => ['name', 'university', 'course', 'code', 'credits', 'workload_hours'].includes(g))))
+    .map(([key, val]) => `### ${key}\n${val.trim()}`)
+    .join('\n\n')
+
+  // Dados já extraídos (sem _rawSections para não duplicar conteúdo)
+  const extractedData = { ...partial }
+  delete (extractedData as Record<string, unknown>)._rawSections
+  delete (extractedData as Record<string, unknown>)._confidence
+
+  return `
+Dados extraídos pelo parser determinístico:
+${JSON.stringify(extractedData, null, 2)}
+
+Campos de alta confiança (preservar como estão): ${highConfidence.length > 0 ? highConfidence.join(', ') : 'nenhum ainda'}
+Campos que precisam da sua atenção: ${gaps.length > 0 ? gaps.join(', ') : 'nenhum — apenas análise pedagógica'}
+
+Seções brutas do documento (use para completar o que falta):
+${rawContext || '(nenhuma seção estruturada detectada pelo parser — infira do contexto disponível)'}
+
+Retorne um array JSON com ${expectedCount} ementa(s) usando o schema:
+${SUBJECT_SCHEMA}
+
+${SUBJECT_RULES}
 `.trim()
 }
 
@@ -254,6 +337,8 @@ export interface GeneratePlanInput {
   // Routing context — set by SkillRouter
   studentLevel?:        'iniciante' | 'intermediario' | 'avancado'
   urgency?:             'baixa' | 'media' | 'alta'
+  // When true, instructs the AI to keep verbose text fields short (plans with >30 sessions)
+  concise?:             boolean
 }
 
 export function generatePlanPrompt(params: GeneratePlanInput): string {
@@ -313,7 +398,8 @@ Restrições:
 - Revisões (type: "revisao") nos intervalos: +1d, +3d, +7d, +21d após o estudo original
 - review_of: array com nomes dos tópicos revisados ([] em sessões não-revisão)
 - Máximo 2-3 conceitos novos por sessão
-- mastery_criteria: sempre comportamento verificável (ex: "resolve X sem consulta")
+- mastery_criteria: sempre comportamento verificável (ex: "resolve X sem consulta")${params.concise ? `
+- PLANO EXTENSO — economize tokens: tip e mastery_criteria em no máximo 10 palavras cada; real_context em no máximo 8 palavras (ou null)` : ''}
 - Retorne SOMENTE o JSON.
 `.trim()
 }

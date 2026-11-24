@@ -1,7 +1,35 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { supabase } from './supabase'
 
 export const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 export const MODEL = 'claude-sonnet-4-6'
+
+export const generateFromPdf = async (
+  systemPrompt: string,
+  userPrompt: string,
+  pdfBase64: string,
+  maxTokens = 8192
+): Promise<string> => {
+  // Document block for native PDF parsing — SDK 0.24.x doesn't type this, cast via unknown.
+  const documentBlock = {
+    type: 'document',
+    source: { type: 'base64', media_type: 'application/pdf', data: pdfBase64 },
+  } as unknown as Anthropic.Messages.TextBlockParam
+
+  const message = await anthropic.messages.create(
+    {
+      model: MODEL,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: [documentBlock, { type: 'text', text: userPrompt }] }],
+    },
+    { headers: { 'anthropic-beta': 'pdfs-2024-09-25' } }
+  )
+  logUsage('generateFromPdf', message.usage)
+  const block = message.content[0]
+  if (block.type !== 'text') throw new Error('Resposta inesperada da API')
+  return stripCodeFences(block.text)
+}
 
 export const parseJsonResponse = <T>(response: string, label: string): T => {
   try { return JSON.parse(response) as T }
@@ -76,6 +104,19 @@ export const generateWithTools = async (
 const logUsage = (label: string, usage: Anthropic.Usage): void => {
   const cost = (usage.input_tokens * 3 + usage.output_tokens * 15) / 1_000_000
   console.info(`[AI] ${label} — in: ${usage.input_tokens} | out: ${usage.output_tokens} | ~$${cost.toFixed(5)}`)
+
+  // Fire-and-forget: persiste no banco para o dashboard de auditoria.
+  // Falhas são silenciosas — nunca bloqueiam a resposta ao usuário.
+  supabase.from('token_usage_log').insert({
+    operation:     label,
+    model:         MODEL,
+    input_tokens:  usage.input_tokens,
+    output_tokens: usage.output_tokens,
+    cost_usd:      cost,
+  }).then(
+    ({ error }) => { if (error) console.warn('[AI] logUsage DB error:', error.message) },
+    (err: unknown) => { console.warn('[AI] logUsage insert failed:', err) },
+  )
 }
 
 const stripCodeFences = (text: string): string => {

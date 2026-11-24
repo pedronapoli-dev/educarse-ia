@@ -8,7 +8,7 @@
 > Catálogo de componentes (átomos/moléculas/organismos, Atomic Design):
 > `COMPONENTS.md`.
 >
-> Atualizado em: 2026-06-14
+> Atualizado em: 2026-06-15
 >
 > Paleta: **Teal-Petróleo × Terracota × Creme**
 > Território: rigor acadêmico × calor humano
@@ -23,6 +23,7 @@
 4. [Fase 4 — Telas (ordem de impacto)](#4-fase-4--telas-ordem-de-impacto)
 5. [Páginas auxiliares e estados de erro](#4b-páginas-auxiliares-e-estados-de-erro-fora-do-rastreador-original)
 6. [Fase 5 — Criação do símbolo de marca (logo)](#5-fase-5--criação-do-símbolo-de-marca-logo)
+7. [Fase 7 — Auditoria pós-rollout](#6-fase-7--auditoria-pós-rollout-2026-06-15)
 
 ---
 
@@ -480,3 +481,46 @@ preview HTML, validar com `check_contrast.py` e atualizar
 Projeto não tem `apps/web/public/` — `favicon.ico`/`apple-touch-icon.png`
 do brief original não se aplicam; `icon.tsx` já cobre o favicon via
 `ImageResponse` (convenção adotada antes desta fase).
+
+---
+
+## 6. Fase 7 — Auditoria pós-rollout (2026-06-15)
+
+### ✅ Confirmação de conclusão
+
+Auditoria via `grep -rn "indigo-\|gray-[0-9]" apps/web/src` não encontrou
+nenhum resultado — as Fases 1–6 estão confirmadas **no código**, não só neste
+rastreador. Os 4 commits feitos após a migração (`8baca27` login fix+ui,
+`5b97a09` design logo definition, `3b84c15` mobile compatibility, `3550970`
+remove blur for mobile) foram revisados e são compatíveis com os tokens
+semânticos — nenhum introduziu drift. (A "remoção de blur" no último commit é,
+na prática, um redimensionamento responsivo dos círculos decorativos do hero
+— a "rima visual" descrita em §4 continua válida em mobile, só em escala
+menor.)
+
+### ✅ Novo token `--color-border-input`
+
+Introduzido em `8baca27` (`apps/web/src/app/globals.css`): borda de
+`input`/`select`/`textarea`, `--teal-500`. Lastro (já documentado em
+comentário no `globals.css`): nenhum par creme-on-creme alcança 3:1 (WCAG
+1.4.11, não-texto) — `teal-500` é o tom mais claro da paleta que atinge 3,18:1
+sobre `--color-surface`, sinalizando o campo sem recorrer a cinza. Agora
+refletido na tabela "Semantic colors" do `CLAUDE.md`.
+
+### ✅ Novo token `--color-accent-soft-hover`
+
+`DayItem.tsx` (CTA "Praticar") usava `ring-terra-200 hover:bg-terra-200` —
+primitivo sem nome semântico. Criado `--color-accent-soft-hover` (`terra-200`,
+`globals.css` + `tailwind.config.ts`), aplicado como
+`ring-accent-soft-hover hover:bg-accent-soft-hover`.
+
+**Lastro:** Müller-Brockmann — `terra-200` é o mesmo valor da borda de
+`.badge-accent` (`globals.css`), então o ring/hover do CTA "Praticar" ecoa o
+badge "Analisar" (Bloom) já usado nas mesmas telas — reaproveita uma relação
+de paleta existente em vez de introduzir uma nova.
+
+### Observação (não bloqueante)
+
+`COMPONENTS.md` ainda não documenta os átomos `input`/`select`/`textarea`
+(`@layer base`, incluindo `border-input`) — candidato a uma futura Fase 8,
+fora do escopo desta auditoria.

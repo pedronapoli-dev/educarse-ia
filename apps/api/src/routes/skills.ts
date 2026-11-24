@@ -7,6 +7,7 @@ import { supabase }         from '../lib/supabase'
 import { getUserId }        from '../plugins/auth'
 import { checkAndIncrementApiCall } from '../lib/limits'
 import { checkSkillCooldown, recordSkillUsage } from '../lib/cooldowns'
+import { isPlanOwnedByUser } from '../lib/plan-ownership'
 
 const MAX_TOPICS_FOR_PLAN = 30   // caps output tokens in generate-plan
 
@@ -45,6 +46,12 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       },
     },
   }, async (request, reply) => {
+    const userId = getUserId(request)
+
+    const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single()
+    const callResult = await checkAndIncrementApiCall(userId, (user?.plan ?? 'free') as UserPlan)
+    if (!callResult.allowed) return reply.status(402).send(callResult.limited)
+
     const result = await runDiagnosis({
       subjectName:         request.body.subject_name,
       topics:              request.body.topics,
@@ -55,7 +62,7 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       weeklyHours:         request.body.weekly_hours,
       examDate:            request.body.exam_date,
     })
-    return reply.status(200).send({ diagnostic: result })
+    return reply.status(200).send({ diagnostic: result, ...(callResult.warning ?? {}) })
   })
 
   // POST /api/skills/checkin
@@ -80,7 +87,7 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['week', 'topics_covered', 'mastery_criteria_results', 'spaced_reviews_done', 'difficulties', 'hours_studied_this_week', 'hours_planned_this_week', 'application_context'],
         properties: {
-          plan_id:                  { type: 'string' },
+          plan_id:                  { type: 'string', format: 'uuid' },
           week:                     { type: 'integer', minimum: 1 },
           topics_covered:           { type: 'array', items: { type: 'string' } },
           mastery_criteria_results: {
@@ -103,6 +110,10 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
     const userId = getUserId(request)
     const planId = request.body.plan_id
 
+    if (planId && !(await isPlanOwnedByUser(userId, planId))) {
+      return reply.status(404).send({ error: 'Plano não encontrado.' })
+    }
+
     const cooldownResult = await checkSkillCooldown(userId, planId, 'checkin')
     if (!cooldownResult.allowed) return reply.status(429).send(cooldownResult.cooldown)
 
@@ -119,7 +130,7 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       hoursStudiedThisWeek:   request.body.hours_studied_this_week,
       hoursPlannedThisWeek:   request.body.hours_planned_this_week,
       applicationContext:     request.body.application_context,
-    }, planId)
+    }, planId ? { userId, planId } : undefined)
 
     await recordSkillUsage(userId, planId, 'checkin')
 
@@ -148,7 +159,7 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
         type: 'object',
         required: ['blocked_topic', 'block_type', 'weeks_current', 'weeks_remaining', 'topics_remaining', 'topics_done', 'application_context', 'current_scaffolding'],
         properties: {
-          plan_id:             { type: 'string' },
+          plan_id:             { type: 'string', format: 'uuid' },
           blocked_topic:       { type: 'string' },
           block_type:          { type: 'string', enum: ['compreensão', 'ritmo-baixo', 'ritmo-alto', 'motivação'] },
           weeks_current:       { type: 'integer', minimum: 1 },
@@ -163,6 +174,10 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
   }, async (request, reply) => {
     const userId = getUserId(request)
     const planId = request.body.plan_id
+
+    if (planId && !(await isPlanOwnedByUser(userId, planId))) {
+      return reply.status(404).send({ error: 'Plano não encontrado.' })
+    }
 
     const cooldownResult = await checkSkillCooldown(userId, planId, 'recalibrate')
     if (!cooldownResult.allowed) return reply.status(429).send(cooldownResult.cooldown)
@@ -180,7 +195,7 @@ export const skillsRoutes: FastifyPluginAsync = async (fastify) => {
       topicsDone:         request.body.topics_done,
       applicationContext: request.body.application_context,
       currentScaffolding: request.body.current_scaffolding,
-    }, planId)
+    }, planId ? { userId, planId } : undefined)
 
     await recordSkillUsage(userId, planId, 'recalibrate')
 

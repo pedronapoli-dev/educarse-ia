@@ -126,6 +126,10 @@
     --color-accent-soft:     var(--terra-100);   /* badge-accent, chip leve   */
     --color-on-accent-soft:  var(--terra-800);   /* texto sobre soft          */
 
+    /* Hover/ring de "Praticar" (DayItem) sobre bg-accent-soft — mesmo valor da
+       borda de .badge-accent (terra-200), ecoando o badge "Analisar" (Bloom) */
+    --color-accent-soft-hover: var(--terra-200);
+
     /* Estados funcionais */
     --color-success:         var(--success-700);
     --color-success-soft:    var(--success-50);

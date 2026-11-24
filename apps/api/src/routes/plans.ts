@@ -81,10 +81,14 @@ export const plansRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch<{ Params: { id: string }; Body: { week: number; day: number; duration_actual?: number } }>('/:id/session', {
     preHandler: [fastify.authenticate],
-    schema: { body: { type: 'object', required: ['week', 'day'], properties: { week: { type: 'integer' }, day: { type: 'integer' }, duration_actual: { type: 'integer' } } } },
-  }, async (request) => {
+    schema: {
+      params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+      body: { type: 'object', required: ['week', 'day'], properties: { week: { type: 'integer' }, day: { type: 'integer' }, duration_actual: { type: 'integer' } } },
+    },
+  }, async (request, reply) => {
     const userId = getUserId(request)
-    await completeSession(userId, request.params.id, request.body.week, request.body.day, request.body.duration_actual)
+    const completed = await completeSession(userId, request.params.id, request.body.week, request.body.day, request.body.duration_actual)
+    if (!completed) return reply.status(404).send({ error: 'Plano não encontrado.' })
     return { ok: true }
   })
 

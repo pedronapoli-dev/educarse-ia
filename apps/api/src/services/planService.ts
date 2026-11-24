@@ -22,12 +22,23 @@ export interface PlanInput {
   enableYoutube?: boolean   // Pre-fetch 1 YouTube URL for the main topic tip field
 }
 
+const MAX_PLAN_WEEKS = 12
+
 function calcTotalWeeks(topics: string[], examDate?: string, daysPerWeek = 5): number {
   if (examDate) {
     const diffMs = new Date(examDate).getTime() - Date.now()
-    return Math.min(20, Math.max(1, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000))))
+    return Math.min(MAX_PLAN_WEEKS, Math.max(1, Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000))))
   }
-  return Math.max(2, Math.ceil(topics.length / (daysPerWeek * 2)))
+  return Math.min(MAX_PLAN_WEEKS, Math.max(2, Math.ceil(topics.length / (daysPerWeek * 2))))
+}
+
+// Compute output token budget proportional to plan size.
+// Each session generates ~350 tokens (topic, tip, mastery_criteria, bloom fields, JSON overhead).
+// 1.4× safety buffer; floor at 8192; ceiling at 60000 (model output limit).
+function calcMaxTokens(totalWeeks: number, daysPerWeek: number): number {
+  const totalSessions = totalWeeks * daysPerWeek
+  const estimate = totalSessions * 350 + totalWeeks * 80 + 500
+  return Math.min(Math.max(Math.ceil(estimate * 1.4), 8_192), 60_000)
 }
 
 // Build SM-2 context string for prompt injection.
@@ -62,8 +73,11 @@ export async function generateAndSavePlan(input: PlanInput) {
     .from('subjects').select('*').eq('id', input.subjectId).eq('user_id', input.userId).single()
   if (error || !subject) throw new Error('Ementa não encontrada')
 
-  const topics     = (subject.topics as string[]) ?? []
-  const totalWeeks = calcTotalWeeks(topics, input.examDate, input.daysPerWeek)
+  const topics        = (subject.topics as string[]) ?? []
+  const totalWeeks    = calcTotalWeeks(topics, input.examDate, input.daysPerWeek)
+  const totalSessions = totalWeeks * input.daysPerWeek
+  const maxTokens     = calcMaxTokens(totalWeeks, input.daysPerWeek)
+  const concise       = totalSessions > 30
 
   // Route to the correct plan variant based on student context
   const studentLevel = input.priorKnowledgeLevel !== undefined
@@ -85,10 +99,10 @@ export async function generateAndSavePlan(input: PlanInput) {
     priorKnowledgeLevel: input.priorKnowledgeLevel,
     learningFormats: input.learningFormats,
     applicationContext: input.applicationContext,
-    studentLevel, urgency,
+    studentLevel, urgency, concise,
   }) + sm2Context + youtubeContext
 
-  const response = await generate(systemPrompt, userPrompt, 8192)
+  const response = await generate(systemPrompt, userPrompt, maxTokens)
 
   let generatedPlan: { title: string; total_weeks: number; schedule: ScheduleWeek[] }
   try { generatedPlan = JSON.parse(response) }
@@ -120,15 +134,15 @@ export async function generateAndSavePlan(input: PlanInput) {
 
 export async function completeSession(
   userId: string, planId: string, week: number, day: number, durationActual?: number
-) {
+): Promise<boolean> {
+  const { data: plan } = await supabase
+    .from('plans').select('schedule').eq('id', planId).eq('user_id', userId).single()
+  if (!plan) return false
+
   await supabase.from('study_sessions').insert({
     user_id: userId, plan_id: planId, week, day, topic: '',
     duration_actual: durationActual, completed: true, completed_at: new Date().toISOString(),
   })
-
-  const { data: plan } = await supabase
-    .from('plans').select('schedule').eq('id', planId).eq('user_id', userId).single()
-  if (!plan) return
 
   const schedule = plan.schedule as ScheduleWeek[]
   const weekObj  = schedule.find(w => w.week === week)
@@ -141,4 +155,6 @@ export async function completeSession(
   await supabase.from('plans')
     .update({ schedule, progress, status: progress === 100 ? 'completed' : 'active' })
     .eq('id', planId).eq('user_id', userId)
+
+  return true
 }
