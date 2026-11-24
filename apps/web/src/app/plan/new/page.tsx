@@ -3,9 +3,11 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
-import { Upload, FileText, Loader2, ChevronRight, AlertCircle, Check, Sparkles, BookOpen } from 'lucide-react'
-import { subjectsApi, plansApi } from '@/lib/api'
-import type { Subject, ParsedSubject, NewPlanStep, LearningFormat, StudentProfile } from '@/types'
+import { Upload, FileText, Loader2, ChevronRight, AlertCircle, Check, Sparkles } from 'lucide-react'
+import { ApiLimitError, subjectsApi, plansApi } from '@/lib/api'
+import { EmentarioSubjectPicker } from '@/components/EmentarioSubjectPicker'
+import { LimitReachedBlock } from '@/components/LimitReachedBlock'
+import type { Subject, ParsedSubject, EmentarioEntry, LimitedResponse, NewPlanStep, LearningFormat, StudentProfile } from '@/types'
 
 const extractApiError = (err: unknown, fallback: string): string => {
   if (err && typeof err === 'object' && 'error' in err) return String((err as { error: string }).error)
@@ -65,7 +67,10 @@ const NewPlanPage = () => {
   const [meta, setMeta] = useState({ course: '', university: '', code: '', credits: '' })
 
   // Ementário state
+  const [ementarioEntries, setEmentarioEntries]     = useState<EmentarioEntry[]>([])
+  const [selectionLimit, setSelectionLimit]          = useState(0)
   const [ementarioSubjects, setEmentarioSubjects]   = useState<ParsedSubject[]>([])
+  const [limitError, setLimitError]                  = useState<LimitedResponse | null>(null)
   const [selectedIndexes, setSelectedIndexes]        = useState<Set<number>>(new Set())
   const [batchProgress, setBatchProgress]            = useState<{ current: number; total: number; name: string } | null>(null)
 
@@ -75,16 +80,18 @@ const NewPlanPage = () => {
   const [previousBlocks, setPreviousBlocks]          = useState('')
   const [applicationContext, setApplicationContext]   = useState('')
 
-  const isEmentarioFlow = ementarioSubjects.length > 0
+  const isEmentarioFlow = ementarioEntries.length > 0
 
   const onDrop = useCallback(async (files: File[]) => {
     const file = files[0]; if (!file) return
-    setIsLoading(true); setError(null); setScannedHint(null)
+    setIsLoading(true); setError(null); setScannedHint(null); setLimitError(null)
     try {
       const res = await subjectsApi.uploadPdf(file)
       if (res.isEmentario) {
-        setEmentarioSubjects(res.subjects)
-        setSelectedIndexes(new Set(res.subjects.map((_, i) => i)))
+        setEmentarioEntries(res.entries)
+        setSelectionLimit(res.selection_limit)
+        setEmentarioSubjects([])
+        setSelectedIndexes(new Set())
         setStep('select')
       } else {
         setSubject(res.subject)
@@ -98,10 +105,10 @@ const NewPlanPage = () => {
       }
     } catch (err: unknown) {
       const apiErr = err && typeof err === 'object' ? (err as Record<string, unknown>) : {}
-      if (apiErr.status === 422 && apiErr.code === 'PDF_SCANNED') {
+      if (typeof apiErr.code === 'string' && apiErr.code.startsWith('PDF_')) {
         setError(
           (apiErr.message as string | undefined) ??
-          'Este PDF não contém texto e não pode ser processado. Use um PDF criado digitalmente ou insira o texto manualmente.'
+          'Não foi possível processar este PDF. Tente outro arquivo ou insira o texto manualmente.'
         )
         setScannedHint((apiErr.hint as string | undefined) ?? null)
       } else {
@@ -116,12 +123,36 @@ const NewPlanPage = () => {
   })
 
   const toggleSubjectSelection = (index: number) => {
+    // A seleção mudou: o resultado anterior da IA não vale mais.
+    setEmentarioSubjects([])
     setSelectedIndexes(prev => {
       const next = new Set(prev)
       if (next.has(index)) next.delete(index)
-      else next.add(index)
+      else if (next.size < selectionLimit) next.add(index)
       return next
     })
+  }
+
+  const showLimitOrError = (err: unknown, fallback: string) => {
+    if (err instanceof ApiLimitError) {
+      setLimitError({ limited: true, upgrade_url: err.upgrade_url, usage: err.usage })
+      setError(null)
+    } else {
+      setError(extractApiError(err, fallback))
+    }
+  }
+
+  const handleConfirmSelection = async () => {
+    if (ementarioSubjects.length > 0) { setStep('profile'); return }
+    const selectedEntries = ementarioEntries.filter(entry => selectedIndexes.has(entry.index))
+    setIsLoading(true); setError(null); setLimitError(null)
+    try {
+      const { subjects } = await subjectsApi.completeEmentario(selectedEntries)
+      setEmentarioSubjects(subjects)
+      setStep('profile')
+    } catch (err: unknown) {
+      showLimitOrError(err, 'Erro ao analisar as disciplinas escolhidas.')
+    } finally { setIsLoading(false) }
   }
 
   const handleGeneratePlan = async () => {
@@ -147,12 +178,11 @@ const NewPlanPage = () => {
   }
 
   const handleGenerateBatch = async () => {
-    const selectedSubjects = ementarioSubjects.filter((_, i) => selectedIndexes.has(i))
-    if (selectedSubjects.length === 0) return
+    if (ementarioSubjects.length === 0) return
 
-    setStep('generating-batch'); setError(null)
+    setStep('generating-batch'); setError(null); setLimitError(null)
     try {
-      const { subjects: savedSubjects } = await subjectsApi.batch(selectedSubjects)
+      const { subjects: savedSubjects } = await subjectsApi.batch(ementarioSubjects)
 
       const studentProfile: StudentProfile = {
         prior_knowledge_level: priorKnowledge,
@@ -174,7 +204,7 @@ const NewPlanPage = () => {
 
       router.push('/dashboard')
     } catch (err: unknown) {
-      setError(extractApiError(err, 'Erro ao gerar os planos.')); setStep('configure')
+      showLimitOrError(err, 'Erro ao gerar os planos.'); setStep('configure')
       setBatchProgress(null)
     }
   }
@@ -233,6 +263,12 @@ const NewPlanPage = () => {
         </div>
       )}
 
+      {limitError && (
+        <div className="card mb-6">
+          <LimitReachedBlock limitError={limitError} context="inline" />
+        </div>
+      )}
+
       {/* ── Step: Upload ── */}
       {step === 'upload' && (
         <div
@@ -267,69 +303,34 @@ const NewPlanPage = () => {
       )}
 
       {/* ── Step: Select (Ementário) ── */}
-      {step === 'select' && ementarioSubjects.length > 0 && (
+      {step === 'select' && isEmentarioFlow && (
         <div className="space-y-4">
-          <div className="card p-5">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-accent-soft">
-                <BookOpen className="text-accent" size={16} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-text">Ementário detectado</p>
-                <p className="text-xs text-text-muted mt-0.5">
-                  {ementarioSubjects.length} disciplinas encontradas. Selecione as que deseja planejar.
-                </p>
-              </div>
-            </div>
-
-            <ul className="divide-y divide-border">
-              {ementarioSubjects.map((s, i) => {
-                const selected = selectedIndexes.has(i)
-                return (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onClick={() => toggleSubjectSelection(i)}
-                      className={`w-full flex items-center gap-3 px-1 py-3.5 text-left transition-colors hover:bg-surface-subtle rounded-sm ${selected ? '' : 'opacity-60'}`}
-                    >
-                      <div className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                        selected ? 'bg-primary border-primary' : 'bg-surface border-border-strong'
-                      }`}>
-                        {selected && <Check size={11} className="text-on-primary" />}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-text truncate">{s.name}</p>
-                        {(s.code || s.workload_hours || s.topics.length > 0) && (
-                          <p className="text-xs text-text-subtle mt-0.5">
-                            {[s.code, s.workload_hours ? `${s.workload_hours}h` : null, s.topics.length > 0 ? `${s.topics.length} tópicos` : null]
-                              .filter(Boolean).join(' · ')}
-                          </p>
-                        )}
-                      </div>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-
-            <p className="mt-3 text-xs text-text-subtle">
-              {selectedIndexes.size} de {ementarioSubjects.length} selecionadas
-            </p>
-          </div>
+          <EmentarioSubjectPicker
+            entries={ementarioEntries}
+            selectedIndexes={selectedIndexes}
+            selectionLimit={selectionLimit}
+            onToggle={toggleSubjectSelection}
+          />
 
           <div className="flex gap-3">
             <button
-              onClick={() => { setEmentarioSubjects([]); setSelectedIndexes(new Set()); setStep('upload') }}
+              onClick={() => {
+                setEmentarioEntries([]); setEmentarioSubjects([]); setSelectedIndexes(new Set())
+                setLimitError(null); setError(null); setStep('upload')
+              }}
+              disabled={isLoading}
               className="btn-secondary flex-1"
             >
               Voltar
             </button>
             <button
-              onClick={() => setStep('profile')}
-              disabled={selectedIndexes.size === 0}
+              onClick={handleConfirmSelection}
+              disabled={selectedIndexes.size === 0 || isLoading}
               className="btn-primary flex-1"
             >
-              Continuar ({selectedIndexes.size}) <ChevronRight size={15} />
+              {isLoading
+                ? <><Loader2 size={15} className="animate-spin" /> Analisando...</>
+                : <>Continuar ({selectedIndexes.size}) <ChevronRight size={15} /></>}
             </button>
           </div>
         </div>

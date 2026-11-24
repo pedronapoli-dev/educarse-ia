@@ -20,30 +20,43 @@ type ConfidenceMap = Partial<Record<string, ExtractionConfidence>>
 // Detectam os cabeçalhos de seção típicos de ementas brasileiras (MEC)
 
 const SECTION_HEADERS: Array<{ key: string; re: RegExp }> = [
-  { key: 'description',   re: /^(ementa|descrição\s*da\s*disciplina|objetivos?\s*(?:gerais?)?)\s*:?\s*$/i },
+  { key: 'description',   re: /^(ementa|descrição\s*da\s*disciplina)\s*:?\s*$/i },
+  { key: 'objectives',    re: /^objetivos?(?:\s*(?:geral|gerais|específicos?))?\s*:?\s*$/i },
   { key: 'topics',        re: /^(conteúdo\s*programático|programa(?:\s*da\s*disciplina)?|conteúdo|tópicos?\s*(?:abordados?)?|unidades?\s*(?:curriculares?|temáticas?)?)\s*:?\s*$/i },
-  { key: 'bibliography',  re: /^(bibliografia|referências?\s*(?:bibliográficas?|básicas?|complementares?)?|leitura\s*(?:básica|complementar)?)\s*:?\s*$/i },
-  { key: 'prerequisites', re: /^(pré[- ]?requisitos?|requisitos?\s*(?:prévios?|necessários?)?)\s*:?\s*$/i },
-  { key: 'methodology',   re: /^(metodologia|métodos?\s*(?:de\s*ensino)?|procedimentos?)\s*:?\s*$/i },
+  { key: 'bibliography',  re: /^(bibliografia(?:\s*(?:básica|complementar))?|referências?\s*(?:bibliográficas?|básicas?|complementares?)?|leitura\s*(?:básica|complementar)?)\s*:?\s*$/i },
+  { key: 'prerequisites', re: /^(pré[- ]?requisitos?(?:\s*\(s\))?(?:\s*código\s*\(s\)|\s*para\s*esta\s*disciplina)?|requisitos?\s*(?:prévios?|necessários?)?)\s*:?\s*$/i },
+  { key: 'relatedSubjects', re: /^(có[- ]?requisitos?(?:\s*\(s\))?|pré[- ]?requisitos?\s*para)\s*:?\s*$/i },
+  { key: 'methodology',   re: /^(metodologia|métodos?\s*(?:de\s*ensino)?|procedimentos?|abordagem\s*procedimentos\s*metodológicos)\s*:?\s*$/i },
   { key: 'evaluation',    re: /^(avaliação|critérios?\s*de\s*avaliação|forma\s*de\s*avaliação)\s*:?\s*$/i },
 ]
 
 // ─── Field-level regex patterns ───────────────────────────────────────────────
 
-// Código de disciplina — padrão MEC: 2-5 letras + 3-6 dígitos
-const CODE_RE = /\b([A-Z]{2,5}\d{3,6})\b/g
+// Código de disciplina — 2-5 letras + 3-6 dígitos, com hífen opcional (MAT101, JOG-406)
+const CODE_RE = /\b([A-Z]{2,5}-?\d{3,6})\b/g
+const CODE_LINE_RE = /^[A-Z]{2,5}-?\d{3,6}$/
+const BROKEN_CODE_RE = /\b([A-Z]{2,5})-[ \t]*\r?\n[ \t]*(\d{3,6})\b/g
+
+// Códigos com hífen aparecem em tabelas de pré-requisito de uma única disciplina,
+// então não servem como sinal de ementário.
+const UNHYPHENATED_CODE_RE = /\b([A-Z]{2,5}\d{3,6})\b/g
+const EMENTA_HEADER_RE = /^\s*ementa\s*:?\s*$/gim
 
 // Créditos — "4 créditos", "Créditos: 4", "4 cr", "04 cr."
-const CREDITS_RE = /(?:créditos?\s*:?\s*(\d+)|(\d+)\s*créditos?|(\d+)\s*cr\.?\b)/i
+// "CRÉDITOS 8 tempos" é carga semanal em célula vizinha, não número de créditos.
+const CREDITS_RE = /(?:créditos?\s*:?\s*(\d+)(?!\d|\s*tempos)|(\d+)\s*créditos?|(\d+)\s*cr\.?\b)/i
 
 // Carga horária — "60h", "60 horas", "Carga Horária: 60", "Horas Aula: 60"
 const WORKLOAD_RE = /(?:carga\s*horária\s*:?\s*(\d+)|horas?\s*(?:aula|totais?|semanais?)?\s*:?\s*(\d+)|(\d+)\s*h(?:oras?)?\b(?!\s*de))/i
 
 // Prefixos de nome de disciplina
-const NAME_LABEL_RE = /(?:disciplina|componente\s*curricular|nome\s*da\s*disciplina|matéria)\s*:?\s*([^\n\r]{5,100})/i
+// Em formulários, "DISCIPLINA CÓDIGO" é a linha de rótulos e o nome vem na linha seguinte.
+// O OCR pode perder o acento de "CÓDIGO" ou ler a borda da tabela como "|".
+const NAME_LABEL_RE = /(?:disciplina(?:[\s|]+c[óo]digo(?:\s*\(s\))?(?=\s*[\n\r]))?|componente\s*curricular|nome\s*da\s*disciplina|matéria)\s*:?\s*([^\n\r]{5,100})/i
+const FORM_PLACEHOLDER_RE = /\(preenchimento[^)]*\)/gi
 
 // Curso
-const COURSE_RE = /(?:curso|graduação|bacharelado|licenciatura|tecnologia\s*em)\s*(?:em|de)?\s*:?\s*([^\n\r,;]{5,80})/i
+const COURSE_RE = /(?:curso(?:\s*\(s\)\s*em\s+que\s+é\s+oferecida)?|graduação|bacharelado|licenciatura|tecnologia\s*em)\s*(?:em|de)?\s*:?\s*([^\n\r,;]{5,80})/i
 
 // Instituição
 const UNIV_RE = /\b(universidade\s+(?:federal|estadual|municipal|privada)?\s*[\wÀ-ú\s]{3,40}|instituto\s+federal[^\n\r]{0,50}|faculdade\s+[\wÀ-ú\s]{3,40}|centro\s+universitário[^\n\r]{0,40})/i
@@ -53,6 +66,12 @@ const LIST_ITEM_RE = /^\s*(?:(\d+|[IVXivx]+)[\.\-\)]\s+|[•·\*\-]\s+)(.{4,})/
 
 // Referência bibliográfica — número + inicial maiúscula (padrão ABNT)
 const REF_START_RE = /^\s*\d+[\.\-\)]\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ]/
+
+// Entrada ABNT sem numeração — "SOBRENOME, Nome. Título..."
+const ABNT_AUTHOR_START_RE = /^\s*[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ]{2,}(?:[ '-][A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ]{2,})*,\s/
+
+// Sem \b: em JS, "á" não é caractere de palavra e a fronteira nunca casaria.
+const NO_PREREQUISITE_RE = /^não\s+há(?=$|[\s.,;(])/i
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,13 +122,10 @@ function extractCourse(headerText: string): { value: string | undefined; confide
   return { value: clean(m[1]), confidence: 'medium' }
 }
 
-function extractName(
-  text: string,
-  sections: Record<string, string>
-): { value: string | undefined; confidence: ExtractionConfidence } {
+function extractName(text: string): { value: string | undefined; confidence: ExtractionConfidence } {
   // 1. Rótulo explícito
   const labeled = text.slice(0, 1200).match(NAME_LABEL_RE)
-  if (labeled) return { value: clean(labeled[1]), confidence: 'high' }
+  if (labeled) return { value: clean(labeled[1].replace(FORM_PLACEHOLDER_RE, '')), confidence: 'high' }
 
   // 2. Primeira linha não-vazia que não seja código, instituição ou número
   const candidates = splitLines(text.slice(0, 600))
@@ -117,7 +133,7 @@ function extractName(
     .filter(l => l.length >= 5 && l.length <= 120)
 
   for (const line of candidates) {
-    if (/^[A-Z]{2,5}\d{3,6}$/.test(line)) continue                     // É um código
+    if (CODE_LINE_RE.test(line)) continue                               // É um código
     if (/universidade|instituto|faculdade|centro/i.test(line)) continue  // É instituição
     if (/^\d/.test(line)) continue                                        // Começa com número
     if (/^\s*(?:ementa|conteúdo|bibliografia)/i.test(line)) continue     // É cabeçalho de seção
@@ -150,7 +166,7 @@ function extractListItems(sectionText: string, isReference = false): string[] {
     }
 
     if (isReference) {
-      if (REF_START_RE.test(line)) {
+      if (REF_START_RE.test(line) || ABNT_AUTHOR_START_RE.test(line)) {
         if (current) result.push(clean(current))
         current = trimmed.replace(/^\d+[\.\-\)]\s*/, '')
       } else if (current) {
@@ -158,7 +174,7 @@ function extractListItems(sectionText: string, isReference = false): string[] {
       }
     } else if (!hasMarkers) {
       // Seção sem marcadores: cada linha com conteúdo é um item próprio
-      if (trimmed.length >= 4 && !/^[A-Z]{2,5}\d{3,6}$/.test(trimmed)) {
+      if (trimmed.length >= 4 && !CODE_LINE_RE.test(trimmed)) {
         result.push(clean(trimmed))
       }
     } else {
@@ -169,7 +185,7 @@ function extractListItems(sectionText: string, isReference = false): string[] {
       } else if (current && trimmed.length > 0) {
         // Continuação de item (linha quebrada)
         current += ' ' + trimmed
-      } else if (!current && trimmed.length > 4 && !/^[A-Z]{2,5}\d{3,6}$/.test(trimmed)) {
+      } else if (!current && trimmed.length > 4 && !CODE_LINE_RE.test(trimmed)) {
         current = trimmed
       }
     }
@@ -187,7 +203,9 @@ function splitIntoSections(text: string): Record<string, string> {
   const buffer: string[] = []
 
   const flush = (): void => {
-    sections[currentKey] = buffer.join('\n')
+    // Acumula: uma chave pode repetir (bibliografia básica + complementar).
+    const sectionText = buffer.join('\n')
+    sections[currentKey] = sections[currentKey] ? `${sections[currentKey]}\n${sectionText}` : sectionText
     buffer.length = 0
   }
 
@@ -213,10 +231,12 @@ function splitIntoSections(text: string): Record<string, string> {
 // ─── Ementário detection (múltiplas disciplinas) ──────────────────────────────
 
 function detectMultipleSubjects(text: string): boolean {
-  const codes = [...text.matchAll(CODE_RE)]
+  const codes = [...text.matchAll(UNHYPHENATED_CODE_RE)]
   // 3+ códigos distintos → provável ementário
   const distinct = new Set(codes.map(m => m[1]))
   if (distinct.size >= 3) return true
+  // Cada disciplina de um ementário tem o próprio cabeçalho "EMENTA"
+  if ((text.match(EMENTA_HEADER_RE) ?? []).length >= 2) return true
   // Múltiplas ocorrências de "Conteúdo Programático" → múltiplas ementas
   const topicsHeaders = (text.match(/conteúdo\s*programático/gi) ?? []).length
   return topicsHeaders >= 2
@@ -239,7 +259,9 @@ export interface ExtractionResult {
  * // partial._confidence['topics'] === 'high' → Claude não precisa re-extrair tópicos
  * // partial._confidence['name'] === 'missing' → Claude deve inferir do texto
  */
-export function extractEmentaStructure(text: string): ExtractionResult {
+export function extractEmentaStructure(sourceText: string): ExtractionResult {
+  // Células estreitas de tabela quebram o código em duas linhas ("ACE-" / "701").
+  const text = sourceText.replace(BROKEN_CODE_RE, '$1-$2')
   const sections = splitIntoSections(text)
   const confidence: ConfidenceMap = {}
 
@@ -249,7 +271,7 @@ export function extractEmentaStructure(text: string): ExtractionResult {
   const workloadR = extractWorkload(text)
   const univR     = extractUniversity(sections._header ?? text.slice(0, 800))
   const courseR   = extractCourse(sections._header ?? text.slice(0, 800))
-  const nameR     = extractName(text, sections)
+  const nameR     = extractName(text)
 
   confidence.code           = codeR.confidence
   confidence.credits        = creditsR.confidence
@@ -268,7 +290,9 @@ export function extractEmentaStructure(text: string): ExtractionResult {
 
   // Pré-requisitos (simples — lista curta)
   const prerequisites = sections.prerequisites
-    ? splitLines(sections.prerequisites).map(clean).filter(l => l.length >= 3 && l.length <= 120)
+    ? splitLines(sections.prerequisites)
+        .map(clean)
+        .filter(l => l.length >= 3 && l.length <= 120 && !NO_PREREQUISITE_RE.test(l))
     : []
   confidence.prerequisites = prerequisites.length > 0 ? 'high' : 'missing'
 

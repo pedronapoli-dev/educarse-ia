@@ -27,6 +27,7 @@ ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-por \
+    tesseract-ocr-osd \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 

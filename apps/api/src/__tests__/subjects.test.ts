@@ -8,36 +8,25 @@ import type { FastifyInstance } from 'fastify'
 // Mock das chamadas de IA — integração testa DB, não LLM
 vi.mock('../services/subjectService', async (importOriginal) => {
   const mod = await importOriginal<typeof import('../services/subjectService')>()
+  const singleSubjectOutcome = {
+    kind: 'single' as const,
+    subject: {
+      name: 'Cálculo II',
+      code: 'MAT0122',
+      course: 'Engenharia Civil',
+      university: 'USP',
+      credits: 4,
+      workload_hours: 60,
+      description: 'Ementa de teste para integração',
+      topics: ['Limites', 'Derivadas', 'Integrais'],
+      bibliography: ['Stewart, J. — Cálculo Vol. 2'],
+      prerequisites: ['Cálculo I'],
+    },
+  }
   return {
     ...mod,
-    parseSubjectFromPdf: vi.fn().mockResolvedValue([
-      {
-        name: 'Cálculo II',
-        code: 'MAT0122',
-        course: 'Engenharia Civil',
-        university: 'USP',
-        credits: 4,
-        workload_hours: 60,
-        description: 'Ementa de teste para integração',
-        topics: ['Limites', 'Derivadas', 'Integrais'],
-        bibliography: ['Stewart, J. — Cálculo Vol. 2'],
-        prerequisites: ['Cálculo I'],
-      },
-    ]),
-    parseSubjectFromText: vi.fn().mockResolvedValue([
-      {
-        name: 'Cálculo II',
-        code: 'MAT0122',
-        course: 'Engenharia Civil',
-        university: 'USP',
-        credits: 4,
-        workload_hours: 60,
-        description: 'Ementa de teste para integração',
-        topics: ['Limites', 'Derivadas', 'Integrais'],
-        bibliography: ['Stewart, J. — Cálculo Vol. 2'],
-        prerequisites: ['Cálculo I'],
-      },
-    ]),
+    parseSubjectFromPdf: vi.fn().mockResolvedValue(singleSubjectOutcome),
+    parseSubjectFromText: vi.fn().mockResolvedValue(singleSubjectOutcome),
   }
 })
 

@@ -1,4 +1,4 @@
-import { PLAN_LIMITS } from '@educarseia/types'
+import { MAX_EMENTARIO_SELECTION, PLAN_LIMITS } from '@educarseia/types'
 import type { UserPlan, LimitedResponse, UsageWarning } from '@educarseia/types'
 import { supabase } from './supabase'
 
@@ -40,6 +40,13 @@ export const checkPlansLimit = async (
     }
   }
   return { allowed: true }
+}
+
+/** Quantas disciplinas de um ementário o aluno pode escolher, dado o saldo de planos. */
+export const getEmentarioSelectionLimit = (plan: UserPlan, plansCount: number): number => {
+  const { maxPlans } = PLAN_LIMITS[plan]
+  if (maxPlans === null) return MAX_EMENTARIO_SELECTION
+  return Math.min(MAX_EMENTARIO_SELECTION, Math.max(0, maxPlans - plansCount))
 }
 
 // ── Verificação e incremento de API calls ────────────────────────────────────

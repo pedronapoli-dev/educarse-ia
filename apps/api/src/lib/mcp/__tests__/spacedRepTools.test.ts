@@ -157,21 +157,13 @@ describe('getNextReviewsDue', () => {
     // given
     const today = '2026-06-15'
     const input = {
-      review_schedule: [{ topic: 'Derivadas', review_dates: ['2026-07-01', today, '2026-06-20'] }],
+      review_schedule: [{ topic: 'Derivadas', review_dates: [today, '2026-06-20', '2026-07-01'] }],
       as_of_date: today,
     }
     // when
     const result = getNextReviewsDue(input)
-    // then: a primeira data na lista que confere com today é retornada
-    // mas o algoritmo verifica review_dates na ordem — '2026-07-01' é futuro > 7d
-    // portanto precisamos que today seja a primeira data no futuro próximo
-    // Vamos usar uma schedule onde today é a primeira data:
-    const input2 = {
-      review_schedule: [{ topic: 'Derivadas', review_dates: [today, '2026-06-20', '2026-07-01'] }],
-      as_of_date: today,
-    }
-    const result2 = getNextReviewsDue(input2)
-    expect(result2.due_today).toContain('Derivadas')
+    // then
+    expect(result.due_today).toContain('Derivadas')
   })
 
   it('classifica data dentro de 7 dias (mas não hoje) como `upcoming_7days`', () => {

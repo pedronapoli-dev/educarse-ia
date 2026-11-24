@@ -1,12 +1,12 @@
 /**
  * Unit tests for apps/api/src/services/subjectService.ts
  *
- * Pipeline: pdf-parse → smartTruncate → extractEmentaStructure → generate (IA)
+ * Pipeline: pdfjs (ou OCR) → smartTruncate → extractEmentaStructure → generate (IA)
  *
  * parseSubjectFromText: mocks generate() — verifica retorno em array, wrap de objeto,
  *   normalização de campos nulos, truncamento em 50k chars e erros da IA.
- * parseSubjectFromPdf: mocks pdf-parse — verifica ScannedPdfError (texto < 200 chars),
- *   pipeline feliz com 1 ementa, ementário (múltiplas), e truncamento de texto longo.
+ * parseSubjectFromPdf: mocks pdfjs e os binários de OCR — verifica fallback para OCR,
+ *   erros de PDF, pipeline feliz com 1 ementa, ementário e truncamento de texto longo.
  *   extractEmentaStructure roda de verdade (sem mock) — é determinístico e puro.
  * saveSubject: mocks supabase.from('subjects') e verifica campos do insert.
  */
@@ -16,9 +16,10 @@ import { baseSubject } from '../../__tests__/helpers'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const { mockGenerate, mockPdfParse, mockFrom, mockChain } = vi.hoisted(() => {
+const { mockGenerate, mockGetDocument, mockExecFile, mockFrom, mockChain } = vi.hoisted(() => {
   const mockGenerate = vi.fn()
-  const mockPdfParse = vi.fn()
+  const mockGetDocument = vi.fn()
+  const mockExecFile = vi.fn()
   const chain: Record<string, unknown> = {}
   for (const m of ['select', 'insert', 'update', 'delete', 'eq', 'order', 'gte', 'is', 'limit', 'filter']) {
     chain[m] = vi.fn(() => chain)
@@ -27,7 +28,7 @@ const { mockGenerate, mockPdfParse, mockFrom, mockChain } = vi.hoisted(() => {
   chain.maybeSingle = vi.fn()
   chain.then = vi.fn()
   const mockFrom = vi.fn(() => chain)
-  return { mockGenerate, mockPdfParse, mockFrom, mockChain: chain }
+  return { mockGenerate, mockGetDocument, mockExecFile, mockFrom, mockChain: chain }
 })
 
 vi.mock('../../lib/anthropic', () => ({
@@ -42,14 +43,77 @@ vi.mock('../../lib/supabase', () => ({
   supabase: { from: mockFrom },
 }))
 
-vi.mock('pdf-parse', () => ({
-  default: mockPdfParse,
+vi.mock('pdfjs-dist/legacy/build/pdf.js', () => ({
+  GlobalWorkerOptions: { workerSrc: '' },
+  OPS: { paintImageXObject: 85, paintImageXObjectRepeat: 88, paintInlineImageXObject: 86, paintImageMaskXObject: 83 },
+  getDocument: mockGetDocument,
+}))
+
+vi.mock('../../lib/ocr-image', () => ({
+  prepareImageForOcr: vi.fn(async () => undefined),
+}))
+
+vi.mock('child_process', () => ({
+  execFile: mockExecFile,
 }))
 
 // ── Imports após mock ─────────────────────────────────────────────────────────
 
-import { parseSubjectFromText, parseSubjectFromPdf, saveSubject, ScannedPdfError } from '../subjectService'
+import {
+  completeEmentarioEntries,
+  MAX_OCR_PAGES,
+  parseSubjectFromText,
+  parseSubjectFromPdf,
+  PdfProcessingError,
+  saveSubject,
+  ScannedPdfError,
+} from '../subjectService'
+import type { SubjectParseOutcome } from '../subjectService'
 import type { ParsedSubject } from '@educarseia/types'
+
+const expectSingle = (outcome: SubjectParseOutcome): ParsedSubject => {
+  if (outcome.kind !== 'single') throw new Error(`Esperava ementa única, recebeu ${outcome.kind}`)
+  return outcome.subject
+}
+
+// ── Helpers de PDF ────────────────────────────────────────────────────────────
+
+type MockPdfPage = { text: string; hasImage?: boolean }
+
+const IMAGE_OPERATOR = 85
+
+const toTextItems = (text: string) => text.split('\n').map((line, lineIndex) => ({
+  str: line,
+  transform: [1, 0, 0, 12, 72, 720 - lineIndex * 14],
+  width: line.length * 6,
+  height: 12,
+}))
+
+const mockPdfPages = (pages: MockPdfPage[]): void => {
+  mockGetDocument.mockReturnValueOnce({
+    promise: Promise.resolve({
+      numPages: pages.length,
+      getPage: async (pageNumber: number) => ({
+        getTextContent: async () => ({ items: toTextItems(pages[pageNumber - 1].text) }),
+        getOperatorList: async () => ({ fnArray: pages[pageNumber - 1].hasImage ? [IMAGE_OPERATOR] : [] }),
+      }),
+      destroy: async () => undefined,
+    }),
+  })
+}
+
+const mockPdfText = (text: string, pageCount = 1): void => {
+  mockPdfPages(Array.from({ length: pageCount }, (_, pageIndex) => ({ text: pageIndex === 0 ? text : '' })))
+}
+
+type ExecFileCallback = (error: Error | null, result?: { stdout: string; stderr: string }) => void
+
+/** Simula pdftoppm e tesseract; este último devolve o texto informado. */
+const mockOcrOutput = (ocrText: string): void => {
+  mockExecFile.mockImplementation((command: string, _args: string[], _options: unknown, callback: ExecFileCallback) => {
+    callback(null, { stdout: command === 'tesseract' ? ocrText : '', stderr: '' })
+  })
+}
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -88,31 +152,34 @@ describe('parseSubjectFromText', () => {
     // given: IA retorna objeto único (fallback legado)
     mockGenerate.mockResolvedValueOnce(JSON.stringify(parsedSubject))
     // when
-    const result = await parseSubjectFromText('texto da ementa')
+    const result = expectSingle(await parseSubjectFromText('texto da ementa'))
     // then
-    expect(result).toHaveLength(1)
-    expect(result[0].name).toBe('Cálculo I')
+    expect(result.name).toBe('Cálculo I')
   })
 
   it('retorna array com 1 elemento quando a IA já retorna array de 1', async () => {
     // given
     mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject]))
     // when
-    const result = await parseSubjectFromText('texto da ementa')
+    const result = expectSingle(await parseSubjectFromText('texto da ementa'))
     // then
-    expect(result).toHaveLength(1)
-    expect(result[0].name).toBe('Cálculo I')
+    expect(result.name).toBe('Cálculo I')
   })
 
-  it('retorna array com 3 elementos para Ementário com 3 disciplinas', async () => {
-    // given
-    const three = [parsedSubject, parsedSubject2, { ...parsedSubject, name: 'Cálculo II', code: 'MAT102' }]
-    mockGenerate.mockResolvedValueOnce(JSON.stringify(three))
+  it('separa ementário colado como texto sem chamar a IA', async () => {
     // when
-    const result = await parseSubjectFromText('ementário com 3 disciplinas')
+    const outcome = await parseSubjectFromText(PDF_TEXT_EMENTARIO)
     // then
-    expect(result).toHaveLength(3)
-    expect(result.map(s => s.name)).toEqual(['Cálculo I', 'Álgebra Linear', 'Cálculo II'])
+    expect(outcome.kind).toBe('ementario')
+    expect(mockGenerate).not.toHaveBeenCalled()
+  })
+
+  it('recusa várias ementas que não podem ser separadas', async () => {
+    // given
+    const text = 'Cálculo I\nEMENTA\nLimites e derivadas.\n\nFísica I\nEMENTA\nMecânica clássica.'
+    // when / then
+    await expect(parseSubjectFromText(text)).rejects.toMatchObject({ code: 'PDF_EMENTARIO_UNRECOGNIZED' })
+    expect(mockGenerate).not.toHaveBeenCalled()
   })
 
   it('normaliza arrays nulos (topics, bibliography, prerequisites) para []', async () => {
@@ -120,11 +187,11 @@ describe('parseSubjectFromText', () => {
     const withNulls = { ...parsedSubject, topics: null, bibliography: null, prerequisites: null }
     mockGenerate.mockResolvedValueOnce(JSON.stringify([withNulls]))
     // when
-    const result = await parseSubjectFromText('texto')
+    const result = expectSingle(await parseSubjectFromText('texto'))
     // then
-    expect(result[0].topics).toEqual([])
-    expect(result[0].bibliography).toEqual([])
-    expect(result[0].prerequisites).toEqual([])
+    expect(result.topics).toEqual([])
+    expect(result.bibliography).toEqual([])
+    expect(result.prerequisites).toEqual([])
   })
 
   it('lança erro quando a IA retorna array vazio', async () => {
@@ -205,47 +272,129 @@ Conteúdo Programático
 `.trim()
 
 describe('parseSubjectFromPdf', () => {
-  it('lança ScannedPdfError quando o PDF não contém texto extraível (vazio)', async () => {
-    // given: pdf-parse típico de PDF escaneado — retorna texto em branco
-    mockPdfParse.mockResolvedValueOnce({ text: '   \n\t  ' })
+  it('lança ScannedPdfError quando nem a camada de texto nem o OCR têm conteúdo', async () => {
+    // given: PDF escaneado cuja imagem também não tem texto reconhecível
+    mockPdfText('   \n\t  ')
+    mockOcrOutput('')
     // when / then
     await expect(parseSubjectFromPdf(Buffer.from('%PDF'))).rejects.toBeInstanceOf(ScannedPdfError)
   })
 
-  it('lança ScannedPdfError quando texto extraído tem menos de 200 chars', async () => {
+  it('lança ScannedPdfError quando texto e OCR têm menos de 50 chars', async () => {
     // given: texto muito curto para extração confiável
-    mockPdfParse.mockResolvedValueOnce({ text: 'Cálculo I — ementa breve.' })
+    mockPdfText('Cálculo I — ementa breve.')
+    mockOcrOutput('Cálculo I')
     // when / then
     await expect(parseSubjectFromPdf(Buffer.from('%PDF'))).rejects.toThrow('PDF sem camada de texto detectada.')
   })
 
-  it('retorna 1 ementa quando PDF tem texto suficiente (pipeline feliz)', async () => {
+  it('usa o texto do OCR quando o PDF não tem camada de texto', async () => {
     // given
-    mockPdfParse.mockResolvedValueOnce({ text: PDF_TEXT_SINGLE })
+    mockPdfText('')
+    mockOcrOutput(PDF_TEXT_SINGLE)
     mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject]))
     // when
-    const result = await parseSubjectFromPdf(Buffer.from('%PDF'))
+    const result = expectSingle(await parseSubjectFromPdf(Buffer.from('%PDF')))
     // then
-    expect(result).toHaveLength(1)
-    expect(result[0].name).toBe('Cálculo I')
+    expect(result.name).toBe('Cálculo I')
+    expect(mockExecFile.mock.calls.map(([command]) => command)).toEqual(['pdftoppm', 'tesseract'])
+    expect(mockGenerate.mock.calls[0][1]).toContain('MAT101')
+  })
+
+  it('não executa OCR quando o PDF escaneado passa do limite de páginas', async () => {
+    // given
+    mockPdfText('', MAX_OCR_PAGES + 1)
+    // when / then
+    await expect(parseSubjectFromPdf(Buffer.from('%PDF'))).rejects.toMatchObject({ code: 'PDF_OCR_TOO_LONG' })
+    expect(mockExecFile).not.toHaveBeenCalled()
+  })
+
+  it('classifica falha dos binários de OCR como PDF_OCR_FAILED', async () => {
+    // given: tesseract/poppler não instalados
+    mockPdfText('')
+    mockExecFile.mockImplementation((_command: string, _args: string[], _options: unknown, callback: ExecFileCallback) => {
+      callback(Object.assign(new Error('spawn pdftoppm ENOENT'), { code: 'ENOENT' }))
+    })
+    // when / then
+    await expect(parseSubjectFromPdf(Buffer.from('%PDF'))).rejects.toMatchObject({ code: 'PDF_OCR_FAILED' })
+  })
+
+  it('classifica PDF corrompido como PDF_INVALID', async () => {
+    // given
+    const invalidPdfError = Object.assign(new Error('Invalid PDF structure.'), { name: 'InvalidPDFException' })
+    mockGetDocument.mockReturnValueOnce({ promise: Promise.reject(invalidPdfError) })
+    // when
+    const parsing = parseSubjectFromPdf(Buffer.from('nope'))
+    // then
+    await expect(parsing).rejects.toBeInstanceOf(PdfProcessingError)
+    await expect(parsing).rejects.toMatchObject({ code: 'PDF_INVALID' })
+  })
+
+  it('retorna 1 ementa quando PDF tem texto suficiente (pipeline feliz)', async () => {
+    // given
+    mockPdfText(PDF_TEXT_SINGLE)
+    mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject]))
+    // when
+    const result = expectSingle(await parseSubjectFromPdf(Buffer.from('%PDF')))
+    // then
+    expect(result.name).toBe('Cálculo I')
     expect(mockGenerate).toHaveBeenCalledTimes(1)
   })
 
-  it('retorna múltiplas ementas quando PDF é ementário (3+ códigos)', async () => {
+  it('retorna as disciplinas do ementário sem gastar IA', async () => {
     // given: ementário com 3 disciplinas distintas
-    mockPdfParse.mockResolvedValueOnce({ text: PDF_TEXT_EMENTARIO })
-    mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject, parsedSubject2]))
+    mockPdfText(PDF_TEXT_EMENTARIO)
     // when
-    const result = await parseSubjectFromPdf(Buffer.from('%PDF'))
+    const outcome = await parseSubjectFromPdf(Buffer.from('%PDF'))
     // then
-    expect(result).toHaveLength(2)
-    expect(result[1].name).toBe('Álgebra Linear')
+    if (outcome.kind !== 'ementario') throw new Error('Esperava ementário')
+    expect(outcome.entries.map(entry => entry.name)).toEqual(['Cálculo I', 'Álgebra Linear', 'Física I'])
+    expect(mockGenerate).not.toHaveBeenCalled()
+  })
+
+  it('completa com IA somente as disciplinas escolhidas', async () => {
+    // given
+    mockGenerate
+      .mockResolvedValueOnce(JSON.stringify([parsedSubject]))
+      .mockResolvedValueOnce(JSON.stringify([parsedSubject2]))
+    // when
+    const subjects = await completeEmentarioEntries(['Disciplina: Cálculo I\nEMENTA\nLimites.', 'Disciplina: Álgebra Linear\nEMENTA\nVetores.'])
+    // then
+    expect(subjects.map(subject => subject.name)).toEqual(['Cálculo I', 'Álgebra Linear'])
+    expect(mockGenerate).toHaveBeenCalledTimes(2)
+  })
+
+  it('faz OCR da página de foto mesmo com marca d\'água de scanner nas outras', async () => {
+    // given: texto somado passaria do mínimo, mas nenhuma página tem conteúdo real
+    const watermark = 'Digitalizado com aplicativo'
+    mockPdfPages([
+      { text: watermark, hasImage: true },
+      { text: watermark, hasImage: true },
+      { text: watermark, hasImage: true },
+    ])
+    mockOcrOutput('Cálculo I: limites, derivadas e integrais de funções de uma variável real.')
+    mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject]))
+    // when
+    await parseSubjectFromPdf(Buffer.from('%PDF'))
+    // then
+    const commands = mockExecFile.mock.calls.map(([command]) => command)
+    expect(commands.filter(command => command === 'tesseract')).toHaveLength(3)
+  })
+
+  it('não faz OCR em página digital curta sem imagem', async () => {
+    // given
+    mockPdfPages([{ text: PDF_TEXT_SINGLE }, { text: 'Página 2' }])
+    mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject]))
+    // when
+    await parseSubjectFromPdf(Buffer.from('%PDF'))
+    // then
+    expect(mockExecFile).not.toHaveBeenCalled()
   })
 
   it('trunca texto longo antes do extractor e insere marcador no prompt', async () => {
     // given: texto muito longo (>50k chars)
     const longText = 'Cálculo Diferencial. '.repeat(3000) // ~63k chars
-    mockPdfParse.mockResolvedValueOnce({ text: longText })
+    mockPdfText(longText)
     mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject]))
     // when
     await parseSubjectFromPdf(Buffer.from('%PDF'))
@@ -257,7 +406,7 @@ describe('parseSubjectFromPdf', () => {
   it('não trunca quando texto está dentro do limite de 50k chars', async () => {
     // given: texto exatamente dentro do limite
     const normalText = PDF_TEXT_SINGLE + '\n' + 'Conteúdo extra. '.repeat(100)
-    mockPdfParse.mockResolvedValueOnce({ text: normalText })
+    mockPdfText(normalText)
     mockGenerate.mockResolvedValueOnce(JSON.stringify([parsedSubject]))
     // when
     await parseSubjectFromPdf(Buffer.from('%PDF'))
@@ -269,19 +418,19 @@ describe('parseSubjectFromPdf', () => {
   it('normaliza arrays nulos (topics, bibliography, prerequisites) retornados pela IA', async () => {
     // given: IA retorna campos nulos
     const withNulls = { ...parsedSubject, topics: null, bibliography: null, prerequisites: null }
-    mockPdfParse.mockResolvedValueOnce({ text: PDF_TEXT_SINGLE })
+    mockPdfText(PDF_TEXT_SINGLE)
     mockGenerate.mockResolvedValueOnce(JSON.stringify([withNulls]))
     // when
-    const result = await parseSubjectFromPdf(Buffer.from('%PDF'))
+    const result = expectSingle(await parseSubjectFromPdf(Buffer.from('%PDF')))
     // then
-    expect(result[0].topics).toEqual([])
-    expect(result[0].bibliography).toEqual([])
-    expect(result[0].prerequisites).toEqual([])
+    expect(result.topics).toEqual([])
+    expect(result.bibliography).toEqual([])
+    expect(result.prerequisites).toEqual([])
   })
 
   it('lança erro quando a IA retorna array vazio', async () => {
     // given
-    mockPdfParse.mockResolvedValueOnce({ text: PDF_TEXT_SINGLE })
+    mockPdfText(PDF_TEXT_SINGLE)
     mockGenerate.mockResolvedValueOnce('[]')
     // when / then
     await expect(parseSubjectFromPdf(Buffer.from('%PDF'))).rejects.toThrow('IA retornou lista vazia de ementas')

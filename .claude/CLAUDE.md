@@ -1,6 +1,6 @@
-# educar-se-ia — Project Instructions & State
+# educar-se-ia — Project Instructions
 
-> Single source of truth for all AI-assisted development. Updated 2026-06-14.
+> Frontend and design system rules live in `apps/web/CLAUDE.md`, loaded when working under `apps/web/`.
 
 ## Project
 
@@ -8,161 +8,7 @@
 
 **Pedagogical foundation:** Freire (autonomy), Piaget (constructivism), Vygotsky (ZDP/scaffolding), Bloom (taxonomy + mastery learning), Darcy Ribeiro (integral education), Sweller (cognitive load), Ebbinghaus (spaced repetition). These are not decorative — every prompt, schedule field, and UI element reflects them.
 
-## Structure
-
-```
-apps/web/          → @educarseia/web (Next.js App Router, React 18, Tailwind 3.4)
-apps/api/          → @educarseia/api (Fastify 5.8, Zod, @fastify/jwt)
-packages/types/    → @educarseia/types (shared types — single source of truth)
-packages/config/   → shared configuration (tsconfig presets only for now)
-```
-
-## Current State (what's built)
-
-### Backend — apps/api/src/
-
-**Server (server.ts):** Fastify with CORS, multipart (10MB), JWT (JWKS from Supabase, supports ES256 + RS256), rate limiting (60/min). Health check at `/health`.
-
-**Routes:**
-- `POST /api/subjects/upload` — PDF upload → text extraction → AI parse → save
-- `POST /api/subjects/text` — Raw text → AI parse → save
-- `GET|PATCH|DELETE /api/subjects/:id` — CRUD
-- `POST /api/plans` — Generate study plan (accepts student_profile, enable_sm2, enable_youtube). Enforces `maxPlans` per tier.
-- `GET /api/plans` — List plans (with subjects join)
-- `GET /api/plans/:id` — Plan detail (with subjects join)
-- `PATCH /api/plans/:id/session` — Mark day complete (week + day)
-- `DELETE /api/plans/:id`
-- `POST /api/exercises/generate` — Generate exercises (bloom_level, plan_phase aware). Enforces `maxApiCallsPerMonth` per tier.
-- `GET /api/exercises?plan_id=` — List exercises
-- `PATCH /api/exercises/:id/answer` — Answer exercise
-- `POST /api/skills/diagnose` — Pedagogical diagnostic (ZDP, prerequisites, risk topics)
-- `POST /api/skills/checkin` — Weekly progress evaluation. Enforces `maxApiCallsPerMonth` + 24h cooldown (per plan, or per user when no `plan_id`).
-- `POST /api/skills/recalibrate` — Plan recalibration when blocked. Enforces `maxApiCallsPerMonth` + 168h (1 week) cooldown (per plan, or per user when no `plan_id`).
-- `POST /api/checkout` — Create Stripe Checkout Session for plan upgrade. Returns `{ url }`.
-- `POST /api/webhook` — Stripe webhook (checkout.session.completed, subscription updated/deleted).
-
-**Services:** subjectService (PDF extract + AI parse), planService (generate + complete session), exerciseService (generate + answer), diagnoseService, checkinService, recalibrateService.
-
-**AI System (lib/):**
-- `anthropic.ts` — generate() and generateWithTools() (agentic tool_use loop), model: `claude-sonnet-4-6`
-- `prompts.ts` (v3.0.0) — All system/user prompts with pedagogical examples
-- `skillRouter.ts` — Routes to prompt variant based on (studentLevel, urgency, planPhase, performanceTrend). Variants: foundation-first, mastery-refinement, intensive-review, standard, recovery, acceleration.
-- `limits.ts` — `checkPlansLimit()` and `checkAndIncrementApiCall()`. Enforces PLAN_LIMITS, monthly reset, 80% usage warning. Unlimited tiers track usage via `increment_api_calls` RPC (fire-and-forget). Fails open on DB error. 20 unit tests in `src/lib/__tests__/limits.test.ts`.
-- `cooldowns.ts` — `checkSkillCooldown()` and `recordSkillUsage()`. Enforces per-skill cooldowns (checkin: 24h, recalibrate: 168h) scoped by `plan_id` (or per-user when absent), backed by `skill_usage_log` table. Returns 429 + `CooldownResponse` shape. Fails open on DB error. 11 unit tests in `src/lib/__tests__/cooldowns.test.ts`.
-
-**MCP Tools (lib/mcp/):** Internal TypeScript functions exposed to Claude via tool_use API:
-- `supabaseTools.ts` — get_student_progress, get_spaced_review_status, get_plan_context
-- `spacedRepTools.ts` — SM-2 algorithm (calculate_review_schedule, get_next_reviews_due) — pure computation
-- `resourceTools.ts` — search_youtube_education (YouTube Data API v3, graceful degradation if no key)
-- `registry.ts` — Central dispatcher
-
-### Frontend — apps/web/src/
-
-**Pages:**
-- `/` — Landing page with features, steps, pedagogical frameworks, CTA. Header has links: Planos / Entrar / Começar grátis.
-- `/login` — Email/password auth. After signup shows confirmation screen if email verification required. Has "← Voltar para o início" link.
-- `/dashboard` — Plan list with stats, empty state. Shows 80% usage warning banner with link to /planos.
-- `/plan/new` — 5-step wizard: Upload → Confirm (editable metadata) → Profile (knowledge level, formats, context, blocks) → Configure (hours, days, exam date) → Generating
-- `/plan/[id]` — Plan detail with week navigation, session completion, exercise/checkin/recalibrate flows
-- `/planos` — Pricing page: Free / Básico / Pro / Max cards + Beta callout. Pro highlighted. Calls POST /api/checkout.
-- `/planos/sucesso` — Post-checkout success page.
-
-**Components:**
-- `DayItem` — Study session card with complete toggle, badges (type/priority/bloom), mastery criteria, review chain, tip, practice button
-- `CheckinCard` — Weekly check-in form + results (trend, progress, action rationale). Shows `LimitReachedBlock` on 402, `CooldownNotice` on 429 cooldown.
-- `ExerciseModal` — Exercise generation/display with scaffolded hints, answer feedback. Catches `ApiLimitError` and generic errors separately; shows `LimitReachedBlock` on 402.
-- `RecalibrateModal` — "I'm stuck" flow: block type → topic → AI recalibration results. Shows `LimitReachedBlock` on 402, `CooldownNotice` on 429 cooldown.
-- `LimitReachedBlock` — Shared upgrade CTA component (lock icon, usage bar, "Ver planos" button). Props: `{ limitError: LimitedResponse, context?: 'modal' | 'inline' }`.
-- `CooldownNotice` — Shared cooldown notice component (clock icon, "tente novamente em..."). Props: `{ cooldownError: CooldownResponse, context?: 'modal' | 'inline' }`.
-- `BloomBadge` + `BloomDistribution` — Bloom level visualization
-- `Navbar` — Header with nav + logout
-
-**Error handling:** `error.tsx` (route-level) and `global-error.tsx` (root-level) error boundaries.
-
-**Lib:**
-- `api.ts` — Typed API client. Throws `ApiLimitError` (extends Error, has `upgrade_url` + `usage`) on 402 responses, `ApiCooldownError` (extends Error, has `retry_at`) on 429 cooldown responses.
-- `useAsyncAction` hook — exposes `{ loading, error, limitError, cooldownError, result, execute, reset }`. `limitError: LimitedResponse | null` and `cooldownError: CooldownResponse | null` are separate from `error: string | null`.
-- Supabase clients (browser + server), middleware (auth guard), constants (UI labels/config).
-
-### Database (Supabase)
-
-Tables (all RLS-protected): users, subjects, plans, exercises, study_sessions.
-Triggers: auto updated_at, auto profile creation on signup.
-RPC: increment_plans_count.
-Key: plans.schedule stores full ScheduleWeek[] as JSONB; completions tracked in both study_sessions table AND schedule JSONB.
-
-**Applied migrations:**
-- 003: `application_context` column on plans
-- 004: plan tier constraint (free/basic/pro/max/beta), `api_calls_this_month` int, `api_calls_reset_at` timestamptz on users
-- 005: `increment_api_calls(user_id)` RPC (SECURITY DEFINER, atomic counter for unlimited tiers, EXECUTE restricted to `service_role` only)
-- 006: `skill_usage_log` table (user_id, plan_id, skill_type, created_at) for checkin/recalibrate cooldown tracking, RLS-protected
-
-### Shared Types (packages/types/src/index.ts)
-
-Covers: User, Subject, ParsedSubject, Plan (with application_context), ScheduleWeek, ScheduleDay, BloomLevel, ScaffoldingLevel, StudentProfile, DiagnosticResult, PlanCheckin, RecalibrateResult, Exercise, StudySession, SkillRoute, RoutingContext, LimitedResponse, CooldownResponse, and all union types.
-
-**Tier types:**
-```typescript
-export type UserPlan = 'free' | 'basic' | 'pro' | 'max' | 'beta'
-
-export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
-  free:  { maxPlans: 2,    maxApiCallsPerMonth: 10  },
-  basic: { maxPlans: 10,   maxApiCallsPerMonth: 30  },
-  pro:   { maxPlans: null, maxApiCallsPerMonth: 100 },
-  max:   { maxPlans: null, maxApiCallsPerMonth: null },
-  beta:  { maxPlans: null, maxApiCallsPerMonth: 100 },
-}
-```
-
-## Design System
-
-**Brand:** Teal-Petróleo (`#1A4E5C`) × Terracota (`#A8452A`) × Creme (`#FAF4E8`). Territory: rigor acadêmico × calor humano — the product's pedagogical seriousness expressed visually. Rollout status, per-screen specs, and design rationale ("lastro"): `DESIGN_SYSTEM.md`. Component catalog (atoms/molecules/organisms, Atomic Design): `COMPONENTS.md`.
-
-**Token architecture** — `apps/web/src/app/globals.css` (CSS vars) + `apps/web/tailwind.config.ts` (Tailwind mapping):
-- **Primitives** (`--teal-*`, `--terra-*`, `--creme-*`, `--neutral-*`, `--success/warning/danger-*`) — raw scale values, implementation detail
-- **Semantics** (`--color-*`, exposed as `bg-primary`, `text-text-muted`, etc.) — **UI consumes semantics only**
-
-**Semantic colors:**
-
-| Token | Use |
-|---|---|
-| `bg-bg` / `bg-surface` / `bg-surface-muted` / `bg-surface-subtle` | page background / card-modal-input / secondary surface / brand-tinted hint |
-| `border-border` / `border-border-strong` / `border-border-focus` / `border-border-input` | default border / emphasized border / focus ring / form field border (3:1 vs. surface) |
-| `text-text` / `text-text-muted` / `text-text-subtle` / `text-text-on-dark` | primary (AAA) / secondary (AAA) / caption-placeholder (AA) / text on dark surfaces |
-| `bg-primary` / `text-primary` / `bg-primary-soft` / `text-on-primary` | teal — brand, main actions, info badges/chips |
-| `bg-accent` / `text-accent` / `bg-accent-soft` / `text-on-accent` / `bg-accent-soft-hover` | terracota — conversion CTAs, warm highlight, hover state for soft surfaces |
-| `*-success` / `*-warning` / `*-danger` / `*-info` (+ `-soft`, `-border`, `on-*-soft`) | functional states |
-
-**Typography:**
-- `font-sans` (Inter, via `next/font` → `--font-sans`) — all body/UI/labels
-- `font-display` (Fraunces, via `next/font` → `--font-display`, weights 300–700 + italic) — hero `h1`, section `h2`s, moments of impact ONLY. Never on buttons, badges, labels, or form UI.
-- Modular scale base-16, ratio ≈1.25 — `text-xs` (12px) through `text-7xl` (72px), each with a paired line-height (`tailwind.config.ts`)
-
-**Radius:** `rounded-xs` 4px (badge/chip) · `sm` 6px (input/select) · `md` 8px **default** (button) · `lg` 12px (card/dropdown) · `xl` 16px (modal) · `2xl` 24px (hero container) · `full` (pill/avatar)
-
-**Shadows:** `shadow-xs`→`xl`, tinted with teal rather than pure gray (Refactoring UI — colored shadows read as richer)
-
-**Motion:** `duration-instant/fast/base/slow` (80/150/220/350ms) + `ease-standard/enter/exit`
-
-**Components** (`@layer components` in `globals.css`):
-- Buttons: `.btn-primary` (teal — main actions) · `.btn-accent` (terracota — the one conversion CTA per view) · `.btn-secondary` (outline) · `.btn-ghost` (tertiary)
-- `.card`, `.badge-{primary,accent,green,amber,red,info,gray}`, `.page-header`, `.form-section`
-- `BrandMark` (`@/components/BrandMark`) — brand symbol (learning spiral, see `DESIGN_SYSTEM.md` §5), inline SVG with `stroke`/`fill` via design tokens; `inverted` prop for dark surfaces (footer, CTA bands).
-
-**Bloom level → badge mapping:** Lembrar → `badge-gray` · Compreender → `badge-info` · Aplicar → `badge-primary` · Analisar → `badge-accent` · Avaliar → `badge-amber` · Criar → `badge-green`
-
-### Design System Rules
-- **Semantic tokens only** in JSX (`bg-surface`, `text-text-muted`). Primitives (`teal-700`, `terra-100`, `creme-200`...) only for gradients/illustrations/decorative blobs — never raw hex or default Tailwind `indigo-*`/`gray-*`.
-- **`font-display`** only on hero/section headings (h1, section h2s). Never on buttons, badges, nav, or form controls.
-- **CTA hierarchy:** `btn-accent` = the single highest-priority conversion action per view; `btn-primary` = main app actions; `btn-secondary`/`btn-ghost` = secondary/tertiary.
-- **Section rhythm:** `py-18`/`py-22` (72px/88px) for vertical section padding — not ad hoc values.
-- **Highlight by contrast, not size** (Refactoring UI) — e.g. `border-primary/30 shadow-md`, never `scale()` or oversized cards.
-- Verify any new text/background pairing with `python .claude/skills/agente-designer-senior/scripts/check_contrast.py "#fg" "#bg"` — WCAG 2.2 AA minimum, don't eyeball it.
-
-## Known Gaps & Incomplete Features
-
-1. **No PDF export** — Planned for future.
-2. **No test coverage for API routes** — Only `limits.ts` and `cooldowns.ts` have unit tests (31 passing via Vitest).
+**Planned, not built:** PDF export.
 
 ## Design Decisions to Preserve
 
@@ -196,23 +42,6 @@ export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
 - API routes: `/api/plural-nouns`
 - DB tables/columns: `snake_case`
 
-### Frontend (Next.js)
-- Server Components by default — `'use client'` only for state/effects/events
-- Push `'use client'` as deep as possible
-- Use typed API client (`lib/api.ts`) for backend calls
-- Use `cn()` helper (clsx + tailwind-merge) for class composition
-- No inline styles
-- Visual styling: design tokens only — see "Design System" section. No raw hex, no default Tailwind `indigo-*`/`gray-*`.
-- **Hooks before guards:** all hooks before any conditional return
-
-### Backend (Fastify)
-- Plugin architecture: ecosystem → custom → decorators → hooks → routes
-- Routes → Services → Lib (SRP)
-- `fastify-plugin` for shared decorators, scoped plugins for routes
-- JSON Schema validation in route options
-- `preHandler: [fastify.authenticate]` for protected routes
-- Augment types: `declare module 'fastify'` for decorators
-
 ### Supabase
 - Frontend: `createBrowserClient` from `@supabase/ssr`
 - Backend: `createClient` with `SUPABASE_SERVICE_ROLE_KEY`
@@ -223,71 +52,34 @@ export const PLAN_LIMITS: Record<UserPlan, PlanLimits> = {
 - Proper HTTP codes (201 create, 204 delete, 402 limit)
 - Never swallow errors
 
-### SOLID
-- Routes = HTTP, Services = logic, Lib = infra
-- Extend via plugins, not modification
-- Depend on `@educarseia/types` abstractions
-
 ### Language
 - Code: English
 - User-facing strings: Portuguese (pt-BR)
 
-## Commands
-
-```bash
-npm run dev          # all apps in parallel (web :3000, api :3001)
-npm run build        # production build with cache
-npm run type-check   # TypeScript checks all packages
-npm run lint         # lint all packages
-
-# Tests (run from apps/api/)
-npm run test         # vitest run (18 tests for lib/limits.ts)
-```
-
 ## Environment Variables
 
-### apps/api/.env
+Full lists: `apps/api/.env.example` and `apps/web/.env.example`. `YOUTUBE_API_KEY` and `NEXT_PUBLIC_DISCORD_INVITE_URL` are optional.
+
+Stripe prices:
 ```
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-SUPABASE_ANON_KEY
-ANTHROPIC_API_KEY
-JWT_SECRET
-STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET
 STRIPE_PRICE_ID_BASIC    # price_1TgcXJLt6PKI7uHGsGd5CMqI — R$19.90/mês
 STRIPE_PRICE_ID_PRO      # price_1TgcXKLt6PKI7uHGJsP6kaLS — R$29.90/mês
 STRIPE_PRICE_ID_MAX      # price_1TgcXLLt6PKI7uHG5cYbDeo9 — R$249.90/ano
 STRIPE_PRICE_ID_BETA     # price_1TgcXMLt6PKI7uHGLO3N1x6B — R$14.90/mês
-FRONTEND_URL
-YOUTUBE_API_KEY          # optional — graceful degradation if absent
-PORT                     # default 3001
-```
-
-### apps/web/.env.local
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-NEXT_PUBLIC_API_URL
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-NEXT_PUBLIC_DISCORD_INVITE_URL  # optional — shows "Comunidade" card on /conta if set
 ```
 
 ## Deploy Targets
-- Web: Vercel (root: apps/web)
-- API: Railway (root: apps/api)
-- DB: Supabase hosted
-- Domain: educarse-ia.com.br (A record → Vercel, api.educarse-ia.com.br → Railway)
+See `DEPLOY.md`.
 
 ## CI/CD
 
-- **CI:** `.github/workflows/ci.yml` runs on every push to `main` and on every
+- **CI:** `.github/workflows/ci.yaml` runs on every push to `main` and on every
   PR targeting `main` — `type-check`, `lint`, `test`, `build` across all
   workspaces (Node 20, matches API Dockerfile).
 - **Workflow:** non-trivial changes go through a feature branch + PR. CI runs
   automatically on the PR, and Vercel auto-generates a preview deployment URL
-  for it (project already connected to GitHub) — use that preview for the
-  browser verification required by the "UI or frontend changes" rule above.
+  for it (project already connected to GitHub) — use that preview for
+  browser verification.
   Trivial fixes can still be pushed directly to `main` — CI still runs on push.
 - **CD:** unchanged — Vercel (apps/web) and Railway (apps/api) auto-deploy
   from `main` on every push/merge, as documented in DEPLOY.md.

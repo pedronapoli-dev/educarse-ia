@@ -1,9 +1,9 @@
 import { createClient } from './supabase'
-import type { Plan, Subject, ParsedSubject, Exercise, CreatePlanInput, PlanCheckin, RecalibrateResult, LimitedResponse, CooldownResponse } from '@/types'
+import type { Plan, Subject, ParsedSubject, EmentarioEntry, Exercise, CreatePlanInput, PlanCheckin, RecalibrateResult, LimitedResponse, CooldownResponse } from '@/types'
 
 export type SubjectParseResult =
   | { subject: Subject; isEmentario?: never }
-  | { isEmentario: true; subjects: ParsedSubject[]; subject?: never }
+  | { isEmentario: true; entries: EmentarioEntry[]; selection_limit: number; subject?: never }
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
 
@@ -65,6 +65,10 @@ export const subjectsApi = {
     return res.json() as Promise<SubjectParseResult>
   },
   fromText: (text: string)  => request<SubjectParseResult>('POST', '/api/subjects/text', { text }),
+  completeEmentario: (entries: EmentarioEntry[]) =>
+    request<{ subjects: ParsedSubject[] }>('POST', '/api/subjects/ementario/complete', {
+      entries: entries.map(entry => ({ source_text: entry.source_text })),
+    }),
   batch:    (subjects: ParsedSubject[]) => request<{ subjects: Subject[] }>('POST', '/api/subjects/batch', { subjects }),
   list:     ()              => request<{ subjects: Subject[] }>('GET', '/api/subjects'),
   get:      (id: string)    => request<{ subject: Subject }>('GET', `/api/subjects/${id}`),

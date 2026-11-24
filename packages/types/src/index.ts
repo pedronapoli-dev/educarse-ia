@@ -102,6 +102,23 @@ export interface ParsedSubject {
   topic_dependencies?: Record<string, string[]>  // topic → its internal prerequisites
 }
 
+// ─── Ementário (documento com várias disciplinas) ────────────────────────────
+
+/** Teto de disciplinas de um ementário processadas pela IA em um único plano de estudos. */
+export const MAX_EMENTARIO_SELECTION = 5
+
+/** Tamanho máximo do trecho de uma disciplina enviado para a completude por IA. */
+export const MAX_EMENTARIO_ENTRY_CHARS = 12_000
+
+/** Disciplina identificada sem IA. `source_text` volta à API quando o aluno a escolhe. */
+export interface EmentarioEntry {
+  index:          number
+  name:           string
+  code:           string | null
+  workload_hours: number | null
+  source_text:    string
+}
+
 // ── Pedagogical progression types ────────────────────────────────────────────
 
 // Scaffolding level: support intensity that should DECREASE over plan duration

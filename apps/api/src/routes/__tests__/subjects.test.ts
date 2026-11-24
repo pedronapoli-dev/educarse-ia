@@ -14,8 +14,8 @@ import multipart from '@fastify/multipart'
 
 const {
   supabaseMock,
-  mockParseSubjectFromText, mockParseSubjectFromPdf, mockSaveSubject,
-  MockScannedPdfError,
+  mockParseSubjectFromText, mockParseSubjectFromPdf, mockSaveSubject, mockCompleteEmentarioEntries,
+  MockPdfProcessingError,
 } = vi.hoisted(() => {
   type Result = { data: unknown; error: unknown }
   const queue: Result[] = []
@@ -32,14 +32,12 @@ const {
   const from       = vi.fn(() => raw)
   const deleteUser = vi.fn()
 
-  // Mirror real ScannedPdfError — a rota faz `instanceof ScannedPdfError`
-  // usando o valor importado do módulo mockado, então esse construtor local
-  // precisa ser registrado como `ScannedPdfError` no mock do módulo.
-  class MockScannedPdfError extends Error {
-    readonly code = 'PDF_SCANNED' as const
-    constructor() {
-      super('PDF sem camada de texto detectada.')
-      this.name = 'ScannedPdfError'
+  // Espelha PdfProcessingError — a rota faz `instanceof` com o valor importado
+  // do módulo mockado, então este construtor precisa ser registrado no mock.
+  class MockPdfProcessingError extends Error {
+    constructor(readonly code: string) {
+      super(code)
+      this.name = 'PdfProcessingError'
     }
   }
 
@@ -53,7 +51,8 @@ const {
     mockParseSubjectFromText: vi.fn(),
     mockParseSubjectFromPdf:  vi.fn(),
     mockSaveSubject:          vi.fn(),
-    MockScannedPdfError,
+    mockCompleteEmentarioEntries: vi.fn(),
+    MockPdfProcessingError,
   }
 })
 
@@ -65,7 +64,9 @@ vi.mock('../../services/subjectService', () => ({
   parseSubjectFromText: mockParseSubjectFromText,
   parseSubjectFromPdf:  mockParseSubjectFromPdf,
   saveSubject:          mockSaveSubject,
-  ScannedPdfError:      MockScannedPdfError,
+  completeEmentarioEntries: mockCompleteEmentarioEntries,
+  PdfProcessingError:   MockPdfProcessingError,
+  MAX_OCR_PAGES:        20,
 }))
 
 // ── Imports após mock ─────────────────────────────────────────────────────
@@ -87,6 +88,11 @@ const buildApp = async () => {
 
 const parsedSubject = { name: 'Cálculo I', topics: [], bibliography: [], prerequisites: [] }
 const parsedSubject2 = { name: 'Álgebra Linear', topics: [], bibliography: [], prerequisites: [] }
+const ementarioEntries = [
+  { index: 0, name: 'Cálculo I', code: 'MAT-101', workload_hours: 60, source_text: 'DISCIPLINA\nCálculo I\nEMENTA\nLimites.' },
+  { index: 1, name: 'Álgebra Linear', code: 'MAT-202', workload_hours: 60, source_text: 'DISCIPLINA\nÁlgebra Linear\nEMENTA\nVetores.' },
+]
+const validSourceText = 'DISCIPLINA\nCálculo I\nEMENTA\nLimites, derivadas e integrais de funções reais.'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -96,7 +102,7 @@ beforeEach(() => {
 
 describe('POST /api/subjects/upload', () => {
   it('retorna 201 com a ementa salva quando PDF tem 1 disciplina', async () => {
-    mockParseSubjectFromPdf.mockResolvedValueOnce([parsedSubject])
+    mockParseSubjectFromPdf.mockResolvedValueOnce({ kind: 'single', subject: parsedSubject })
     mockSaveSubject.mockResolvedValueOnce({ id: 'subject-1', name: 'Cálculo I' })
 
     const form = new FormData()
@@ -110,8 +116,9 @@ describe('POST /api/subjects/upload', () => {
     expect(mockSaveSubject).toHaveBeenCalledWith(TEST_USER_ID, parsedSubject, '', 'pdf')
   })
 
-  it('retorna 200 com isEmentario=true quando PDF tem múltiplas disciplinas', async () => {
-    mockParseSubjectFromPdf.mockResolvedValueOnce([parsedSubject, parsedSubject2])
+  it('retorna a lista de disciplinas e o teto do usuário quando PDF é ementário', async () => {
+    mockParseSubjectFromPdf.mockResolvedValueOnce({ kind: 'ementario', entries: ementarioEntries })
+    supabaseMock.queueResult({ data: { plan: 'free', plans_count: 1 }, error: null })
 
     const form = new FormData()
     form.append('file', new Blob([Buffer.from('%PDF-1.4')], { type: 'application/pdf' }), 'ementario.pdf')
@@ -120,8 +127,9 @@ describe('POST /api/subjects/upload', () => {
     const res = await app.inject({ method: 'POST', url: '/api/subjects/upload', payload: form })
 
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ isEmentario: true, subjects: [parsedSubject, parsedSubject2] })
+    expect(res.json()).toEqual({ isEmentario: true, entries: ementarioEntries, selection_limit: 1 })
     expect(mockSaveSubject).not.toHaveBeenCalled()
+    expect(mockCompleteEmentarioEntries).not.toHaveBeenCalled()
   })
 
   it('retorna 400 quando nenhum arquivo é enviado', async () => {
@@ -148,21 +156,29 @@ describe('POST /api/subjects/upload', () => {
     expect(mockParseSubjectFromPdf).not.toHaveBeenCalled()
   })
 
-  it('retorna 422 com code PDF_SCANNED quando PDF não contém camada de texto', async () => {
-    // given: parseSubjectFromPdf lança ScannedPdfError (PDF escaneado / foto)
-    mockParseSubjectFromPdf.mockRejectedValueOnce(new MockScannedPdfError())
+  it.each([
+    ['PDF_SCANNED', 422, 'reconhecer texto'],
+    ['PDF_INVALID', 422, 'corrompido ou protegido'],
+    ['PDF_OCR_TOO_LONG', 422, 'até 20 páginas'],
+    ['PDF_OCR_FAILED', 503, 'Tente novamente'],
+    ['PDF_EMENTARIO_UNRECOGNIZED', 422, 'separar as disciplinas'],
+  ])('traduz %s para status %i com mensagem acionável', async (code, status, messageExcerpt) => {
+    // given
+    mockParseSubjectFromPdf.mockRejectedValueOnce(new MockPdfProcessingError(code))
 
     const form = new FormData()
     form.append('file', new Blob([Buffer.from('%PDF-1.4')], { type: 'application/pdf' }), 'scanned.pdf')
 
+    // when
     const app = await buildApp()
     const res = await app.inject({ method: 'POST', url: '/api/subjects/upload', payload: form })
 
-    expect(res.statusCode).toBe(422)
+    // then
+    expect(res.statusCode).toBe(status)
     const body = res.json()
-    expect(body.code).toBe('PDF_SCANNED')
-    expect(body.error).toBe('PDF escaneado não suportado')
-    expect(body.message).toContain('foto ou scanner')
+    expect(body.code).toBe(code)
+    expect(body.error).toEqual(expect.any(String))
+    expect(body.message).toContain(messageExcerpt)
     expect(body.hint).toContain('Inserir texto')
     expect(mockSaveSubject).not.toHaveBeenCalled()
   })
@@ -173,7 +189,7 @@ describe('POST /api/subjects/upload', () => {
 describe('POST /api/subjects/text', () => {
   it('retorna 201 com a ementa salva quando há 1 disciplina', async () => {
     const text = 'texto da ementa enviado manualmente pelo usuário '.repeat(2)
-    mockParseSubjectFromText.mockResolvedValueOnce([{ name: 'Física I', topics: [] }])
+    mockParseSubjectFromText.mockResolvedValueOnce({ kind: 'single', subject: { name: 'Física I', topics: [] } })
     mockSaveSubject.mockResolvedValueOnce({ id: 'subject-2', name: 'Física I' })
 
     const app = await buildApp()
@@ -184,15 +200,16 @@ describe('POST /api/subjects/text', () => {
     expect(mockSaveSubject).toHaveBeenCalledWith(TEST_USER_ID, { name: 'Física I', topics: [] }, text, 'text')
   })
 
-  it('retorna 200 com isEmentario=true quando texto tem múltiplas disciplinas', async () => {
+  it('retorna a lista de disciplinas quando texto é ementário', async () => {
     const text = 'ementário com 2 disciplinas detalhadas '.repeat(3)
-    mockParseSubjectFromText.mockResolvedValueOnce([parsedSubject, parsedSubject2])
+    mockParseSubjectFromText.mockResolvedValueOnce({ kind: 'ementario', entries: ementarioEntries })
+    supabaseMock.queueResult({ data: { plan: 'pro', plans_count: 30 }, error: null })
 
     const app = await buildApp()
     const res = await app.inject({ method: 'POST', url: '/api/subjects/text', payload: { text } })
 
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ isEmentario: true, subjects: [parsedSubject, parsedSubject2] })
+    expect(res.json()).toEqual({ isEmentario: true, entries: ementarioEntries, selection_limit: 5 })
     expect(mockSaveSubject).not.toHaveBeenCalled()
   })
 
@@ -202,6 +219,46 @@ describe('POST /api/subjects/text', () => {
 
     expect(res.statusCode).toBe(400)
     expect(mockParseSubjectFromText).not.toHaveBeenCalled()
+  })
+})
+
+// ── POST /ementario/complete ──────────────────────────────────────────────────
+
+describe('POST /api/subjects/ementario/complete', () => {
+  const completeUrl = '/api/subjects/ementario/complete'
+
+  it('completa com IA apenas as disciplinas escolhidas', async () => {
+    supabaseMock.queueResult({ data: { plan: 'pro', plans_count: 3 }, error: null })
+    mockCompleteEmentarioEntries.mockResolvedValueOnce([parsedSubject])
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: completeUrl, payload: { entries: [{ source_text: validSourceText }] } })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ subjects: [parsedSubject] })
+    expect(mockCompleteEmentarioEntries).toHaveBeenCalledWith([validSourceText])
+  })
+
+  it('retorna 402 sem chamar a IA quando a escolha excede o saldo de planos', async () => {
+    supabaseMock.queueResult({ data: { plan: 'free', plans_count: 1 }, error: null })
+    const entries = [{ source_text: validSourceText }, { source_text: validSourceText }]
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: completeUrl, payload: { entries } })
+
+    expect(res.statusCode).toBe(402)
+    expect(res.json()).toMatchObject({ limited: true, upgrade_url: '/planos' })
+    expect(mockCompleteEmentarioEntries).not.toHaveBeenCalled()
+  })
+
+  it('retorna 400 acima do teto de disciplinas', async () => {
+    const entries = Array.from({ length: 6 }, () => ({ source_text: validSourceText }))
+
+    const app = await buildApp()
+    const res = await app.inject({ method: 'POST', url: completeUrl, payload: { entries } })
+
+    expect(res.statusCode).toBe(400)
+    expect(mockCompleteEmentarioEntries).not.toHaveBeenCalled()
   })
 })
 
