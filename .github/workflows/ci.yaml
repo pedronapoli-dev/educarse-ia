@@ -45,6 +45,7 @@ jobs:
       - run: npm ci
       - run: npm run build --workspace=packages/types
       - run: npm run type-check
+      - run: npm run lint
       - run: npm run test      # vitest unit + route (mocked)
       - run: npm run build
 
@@ -60,23 +61,12 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
       - name: Start Supabase local stack
-        run: |
-          supabase start --ignore-health-check
-          # Exportar URLs e keys locais para os testes
-          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321"  >> $GITHUB_ENV
-          echo "SUPABASE_URL=http://127.0.0.1:54321"              >> $GITHUB_ENV
-          echo "SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.anon_key')"          >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.service_role_key')" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.anon_key')"     >> $GITHUB_ENV
-        working-directory: apps/api
+        uses: ./.github/actions/setup-supabase
 
       - run: npm ci
+
+      - run: npm run build --workspace=packages/types
 
       - name: Run integration tests
         run: npm run test:integration --workspace=apps/api
@@ -100,20 +90,8 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
       - name: Start Supabase local stack
-        run: |
-          supabase start --ignore-health-check
-          echo "NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321"  >> $GITHUB_ENV
-          echo "SUPABASE_URL=http://127.0.0.1:54321"              >> $GITHUB_ENV
-          echo "SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.anon_key')"          >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.service_role_key')" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.anon_key')"     >> $GITHUB_ENV
-        working-directory: apps/web
+        uses: ./.github/actions/setup-supabase
 
       - run: npm ci
 

@@ -23,6 +23,13 @@ vi.mock('@anthropic-ai/sdk', () => ({
   },
 }))
 
+// Usage logging is a side effect; this unit suite must never reach a database.
+vi.mock('../supabase', () => ({
+  supabase: {
+    from: () => ({ insert: () => Promise.resolve({ error: null }) }),
+  },
+}))
+
 // ── Imports após mock ─────────────────────────────────────────────────────────
 
 import { parseJsonResponse, generate, generateWithTools, generateFromPdf } from '../anthropic'

@@ -11,3 +11,8 @@ out/
 .DS_Store
 *.tsbuildinfo
 .claude/settings.local.json
+
+# Playwright output (.auth holds session tokens)
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/tests/e2e/.auth/

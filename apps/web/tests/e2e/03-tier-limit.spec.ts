@@ -26,15 +26,17 @@ test.describe('Limite de tier — free plan esgotado', () => {
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({
-          id: 'sub-limit-001',
-          user_id: 'u1',
-          name: 'Cálculo I',
-          topics: ['Limites'],
-          workload_hours: 60,
-          bibliography: [],
-          prerequisites: [],
-          source_type: 'pdf',
-          created_at: new Date().toISOString(),
+          subject: {
+            id: 'sub-limit-001',
+            user_id: 'u1',
+            name: 'Cálculo I',
+            topics: ['Limites'],
+            workload_hours: 60,
+            bibliography: [],
+            prerequisites: [],
+            source_type: 'pdf',
+            created_at: new Date().toISOString(),
+          },
         }),
       })
     })
@@ -82,18 +84,16 @@ test.describe('Limite de tier — free plan esgotado', () => {
     await expect(page.getByText(/horas de estudo por dia/i)).toBeVisible({ timeout: 8_000 })
     await page.getByRole('button', { name: /gerar plano com ia/i }).click()
 
-    // Deve aparecer mensagem de erro de limite — a wizard mostra o error state
-    // O frontend trata 402 como erro genérico na wizard (não usa LimitReachedBlock aqui,
-    // usa apenas a mensagem de erro inline na wizard)
-    const errMsg = page.locator('text=/limite|upgrade|planos/i').first()
-    await expect(errMsg).toBeVisible({ timeout: 10_000 })
+    // 402 deve exibir LimitReachedBlock com caminho de upgrade
+    const upgradeLink = page.locator('a[href="/planos"]').filter({ hasText: /planos|upgrade/i }).first()
+    await expect(upgradeLink).toBeVisible({ timeout: 10_000 })
   })
 
   test('/planos renderiza os cards de assinatura', async ({ page }) => {
     await page.goto('/planos')
 
     // Deve exibir os 4 planos
-    await expect(page.getByRole('heading', { name: /planos/i }).first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: /escolha seu plano/i })).toBeVisible()
 
     // Cards dos planos pagos
     await expect(page.getByText(/básico/i).first()).toBeVisible()
@@ -150,12 +150,19 @@ test.describe('Plano detail — exercícios com limite atingido', () => {
         status: 402,
         contentType: 'application/json',
         body: JSON.stringify({
-          error: 'Limite mensal de chamadas de IA atingido',
-          limit_type: 'api_calls',
-          current_plan: 'free',
-          usage: { current: 10, limit: 10, percentage: 100 },
+          limited: true,
           upgrade_url: '/planos',
+          usage: { used: 10, max: 10, percent: 100 },
         }),
+      })
+    })
+
+    // Sem exercícios salvos: o modal precisa tentar gerar e receber o 402
+    await page.route(/\/api\/exercises\?plan_id=/, async (route: Route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ exercises: [] }),
       })
     })
 
@@ -163,20 +170,16 @@ test.describe('Plano detail — exercícios com limite atingido', () => {
 
     // Clicar no botão de praticar do DayItem
     const praticarBtn = page.getByRole('button', { name: /praticar/i }).first()
+    await expect(praticarBtn).toBeVisible({ timeout: 10_000 })
+    await praticarBtn.click()
 
-    // Se o botão estiver visível, clicar e verificar LimitReachedBlock
-    if (await praticarBtn.isVisible()) {
-      await praticarBtn.click()
+    // LimitReachedBlock no modal de exercícios
+    await expect(page.getByRole('heading', { name: /limite do plano atingido/i })).toBeVisible()
 
-      // LimitReachedBlock no modal de exercícios
-      const limitBlock = page.getByText(/limite.*atingido/i).first()
-      await expect(limitBlock).toBeVisible({ timeout: 8_000 })
-
-      // Link "Ver planos"
-      const verPlanosLink = page.getByRole('link', { name: /ver planos/i })
-      await expect(verPlanosLink).toBeVisible()
-      await expect(verPlanosLink).toHaveAttribute('href', '/planos')
-    }
+    // Link "Ver planos"
+    const verPlanosLink = page.getByRole('link', { name: /ver planos/i })
+    await expect(verPlanosLink).toBeVisible()
+    await expect(verPlanosLink).toHaveAttribute('href', '/planos')
   })
 
   test('checkin com cooldown ativo exibe CooldownNotice', async ({ page }) => {
@@ -187,11 +190,9 @@ test.describe('Plano detail — exercícios com limite atingido', () => {
         status: 429,
         contentType: 'application/json',
         body: JSON.stringify({
-          error: 'Check-in já realizado recentemente',
-          skill: 'checkin',
+          cooldown: true,
           retry_at: retryAt,
-          retry_in_hours: 20,
-          plan_id: MOCK_PLAN.id,
+          message: 'Você já fez check-in recentemente. Tente novamente mais tarde.',
         }),
       })
     })
@@ -199,21 +200,16 @@ test.describe('Plano detail — exercícios com limite atingido', () => {
     await page.goto(`/plan/${MOCK_PLAN.id}`)
 
     // Abrir o CheckinCard
-    const checkinBtn = page.getByRole('button', { name: /check-in|avaliação semanal/i }).first()
+    const checkinBtn = page.getByRole('button', { name: /fazer check-in da semana 1/i })
+    await expect(checkinBtn).toBeVisible({ timeout: 10_000 })
+    await checkinBtn.click()
 
-    if (await checkinBtn.isVisible()) {
-      await checkinBtn.click()
+    // Submeter o formulário para disparar a chamada
+    await page.getByRole('button', { name: /enviar check-in/i }).click()
 
-      // Submeter o formulário para disparar a chamada
-      const submitBtn = page.getByRole('button', { name: /enviar|avaliar/i }).first()
-      if (await submitBtn.isVisible()) {
-        await submitBtn.click()
-
-        // CooldownNotice deve aparecer
-        const cooldownNotice = page.getByText(/tente novamente em|próximo check-in/i).first()
-        await expect(cooldownNotice).toBeVisible({ timeout: 8_000 })
-      }
-    }
+    // CooldownNotice deve aparecer
+    await expect(page.getByRole('heading', { name: /aguarde um pouco/i })).toBeVisible()
+    await expect(page.getByText(/disponível novamente em 20 horas/i)).toBeVisible()
   })
 
 })

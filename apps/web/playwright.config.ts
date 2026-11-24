@@ -20,6 +20,10 @@ dotenv.config({ path: path.resolve(__dirname, '.env.local') })
 /** Storage state salvo pelo global-setup — reutilizado em todos os testes autenticados */
 export const STORAGE_STATE = path.join(__dirname, 'tests/e2e/.auth/user.json')
 
+/** npm --workspace flags resolve from the monorepo root */
+const MONOREPO_ROOT = path.resolve(__dirname, '../..')
+const WEB_SERVER_TIMEOUT_MS = 120_000
+
 export default defineConfig({
   testDir: './tests/e2e',
 
@@ -48,22 +52,16 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
 
-  projects: [
-    // Setup global: cria usuário de teste + salva storage state de auth
-    {
-      name: 'setup',
-      testMatch: /global-setup\.ts/,
-    },
+  // Cria usuário de teste + salva storage state de auth antes de todos os testes
+  globalSetup: './tests/e2e/global-setup.ts',
 
-    // Testes autenticados dependem do setup
+  projects: [
     {
       name: 'e2e',
       use: {
         ...devices['Desktop Chrome'],
         storageState: STORAGE_STATE,
       },
-      dependencies: ['setup'],
-      testIgnore: /global-(setup|teardown)\.ts/,
     },
   ],
 
@@ -71,15 +69,17 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run dev --workspace=apps/api',
+      cwd: MONOREPO_ROOT,
       port: 3001,
       reuseExistingServer: true,
-      timeout: 30_000,
+      timeout: WEB_SERVER_TIMEOUT_MS,
     },
     {
       command: 'npm run dev --workspace=apps/web',
+      cwd: MONOREPO_ROOT,
       port: 3000,
       reuseExistingServer: true,
-      timeout: 30_000,
+      timeout: WEB_SERVER_TIMEOUT_MS,
     },
   ],
 })

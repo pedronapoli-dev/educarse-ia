@@ -48,7 +48,7 @@ test.describe('Criação de plano — wizard completo', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(MOCK_SUBJECT),
+          body: JSON.stringify({ subject: MOCK_SUBJECT }),
         })
       } else {
         await route.continue()
@@ -133,7 +133,7 @@ test.describe('Criação de plano — wizard completo', () => {
     await page.goto(`/plan/${MOCK_PLAN.id}`)
 
     // Cabeçalho da semana
-    await expect(page.getByText(/semana 1/i)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(/fundamentos · semana 1/i)).toBeVisible({ timeout: 10_000 })
 
     // Tópico do dia 1
     await expect(page.getByText('Noção intuitiva de limite')).toBeVisible()

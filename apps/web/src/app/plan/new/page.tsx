@@ -157,7 +157,7 @@ const NewPlanPage = () => {
 
   const handleGeneratePlan = async () => {
     if (!subject) return
-    setStep('generating'); setError(null)
+    setStep('generating'); setError(null); setLimitError(null)
     try {
       const studentProfile: StudentProfile = {
         prior_knowledge_level: priorKnowledge,
@@ -173,7 +173,7 @@ const NewPlanPage = () => {
       })
       router.push(`/plan/${res.plan.id}`)
     } catch (err: unknown) {
-      setError(extractApiError(err, 'Erro ao gerar o plano.')); setStep('configure')
+      showLimitOrError(err, 'Erro ao gerar o plano.'); setStep('configure')
     }
   }
 

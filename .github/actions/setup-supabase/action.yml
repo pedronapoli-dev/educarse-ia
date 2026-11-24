@@ -1,0 +1,30 @@
+name: Setup local Supabase
+description: Starts the local Supabase stack with a pinned CLI and exports its connection values
+
+runs:
+  using: composite
+  steps:
+    - name: Install Supabase CLI
+      uses: supabase/setup-cli@v1
+      with:
+        # Keep in sync with supabase/config.toml; major upgrades can change its format.
+        version: 2.106.0
+
+    - name: Start Supabase and export connection values
+      shell: bash
+      run: |
+        supabase start --ignore-health-check
+        status="$(supabase status --output json)"
+
+        # jq -e fails the step when a key is missing instead of exporting "null".
+        api_url="$(jq -er '.API_URL' <<< "$status")"
+        anon_key="$(jq -er '.ANON_KEY' <<< "$status")"
+        service_role_key="$(jq -er '.SERVICE_ROLE_KEY' <<< "$status")"
+
+        {
+          echo "SUPABASE_URL=$api_url"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$api_url"
+          echo "SUPABASE_ANON_KEY=$anon_key"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon_key"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$service_role_key"
+        } >> "$GITHUB_ENV"

@@ -73,7 +73,7 @@ export async function mockSubjectUpload(page: Page) {
     await route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify(MOCK_SUBJECT),
+      body: JSON.stringify({ subject: MOCK_SUBJECT }),
     })
   })
 }
@@ -84,7 +84,7 @@ export async function mockSubjectText(page: Page) {
     await route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify(MOCK_SUBJECT),
+      body: JSON.stringify({ subject: MOCK_SUBJECT }),
     })
   })
 }
@@ -95,7 +95,7 @@ export async function mockSubjectGet(page: Page, id = MOCK_SUBJECT.id) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(MOCK_SUBJECT),
+      body: JSON.stringify({ subject: MOCK_SUBJECT }),
     })
   })
 }
@@ -113,7 +113,7 @@ export async function mockPlanCreate(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([]),
+        body: JSON.stringify({ plans: [] }),
       })
     }
   })
@@ -126,7 +126,7 @@ export async function mockPlanList(page: Page, plans: Plan[] = []) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(plans),
+        body: JSON.stringify({ plans }),
       })
     } else {
       await route.continue()
@@ -141,7 +141,7 @@ export async function mockPlanGet(page: Page, id = MOCK_PLAN.id) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(MOCK_PLAN),
+        body: JSON.stringify({ plan: MOCK_PLAN }),
       })
     } else {
       await route.continue()
@@ -171,21 +171,21 @@ export async function mockPlanLimitReached(page: Page) {
         status: 402,
         contentType: 'application/json',
         body: JSON.stringify({
-          error: 'Limite de planos atingido para seu plano atual',
-          limit_type: 'plans',
-          current_plan: 'free',
-          usage: { current: 2, limit: 2, percentage: 100 },
+          limited: true,
           upgrade_url: '/planos',
+          usage: { used: 2, max: 2, percent: 100 },
         }),
       })
     } else {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([
-          { ...MOCK_PLAN, id: 'plan-e2e-A' },
-          { ...MOCK_PLAN, id: 'plan-e2e-B' },
-        ]),
+        body: JSON.stringify({
+          plans: [
+            { ...MOCK_PLAN, id: 'plan-e2e-A' },
+            { ...MOCK_PLAN, id: 'plan-e2e-B' },
+          ],
+        }),
       })
     }
   })
